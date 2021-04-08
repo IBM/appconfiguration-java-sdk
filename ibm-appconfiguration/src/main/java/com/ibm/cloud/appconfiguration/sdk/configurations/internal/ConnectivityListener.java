@@ -14,8 +14,10 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk.feature.internal;
 
-public interface RetryInterface {
-    void retryMethod();
+package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
+
+public interface ConnectivityListener {
+
+    void onConnectionChange(Boolean isConnected);
 }

@@ -16,7 +16,7 @@
 
 package com.ibm.cloud.appconfiguration.sdk;
 
-import com.ibm.cloud.appconfiguration.sdk.feature.models.internal.Segment;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.Segment;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;

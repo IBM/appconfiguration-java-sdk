@@ -14,11 +14,10 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk.feature.internal;
+package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
-public interface SocketHandler {
-    void onOpen(String openMessage);
-    void onMessage(String message);
-    void onClose(String closeMessage);
-    void onError(Exception e);
+public class ConfigConstants {
+
+    public final static String DEFAULT_SEGMENT_ID = "$$null$$";
+
 }

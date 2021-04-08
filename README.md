@@ -1,11 +1,11 @@
 # IBM Cloud App Configuration Java server SDK
 
-IBM Cloud App Configuration SDK is used to perform feature evaluation based on the configuration on IBM Cloud App Configuration service.
+IBM Cloud App Configuration SDK is used to perform feature flag and property evaluation based on the configuration on IBM Cloud App Configuration service.
 
 ## Table of Contents
 
   - [Overview](#overview)
-  - [Authentication](#authentication)
+  - [Installation](#Installation)
   - [Import the SDK](#import-the-sdk)
   - [Initialize SDK](#initialize-sdk)
   - [License](#license)
@@ -14,7 +14,7 @@ IBM Cloud App Configuration SDK is used to perform feature evaluation based on t
 
 IBM Cloud App Configuration is a centralized feature management and configuration service on [IBM Cloud](https://www.cloud.ibm.com) for use with web and mobile applications, microservices, and distributed environments.
 
-Instrument your applications with App Configuration Java SDK, and use the App Configuration dashboard, CLI or API to define feature flags, organized into collections and targeted to segments. Toggle feature flag states in the cloud to activate or deactivate features in your application or environment, when required.
+Instrument your applications with App Configuration Java SDK, and use the App Configuration dashboard, CLI or API to define feature flags or properties, organized into collections and targeted to segments. Toggle feature flag states in the cloud to activate or deactivate features in your application or environment, when required. You can also manage the properties for distributed applications centrally.
 
 
 ## Installation
@@ -23,16 +23,16 @@ Instrument your applications with App Configuration Java SDK, and use the App Co
 
 ```xml
 <dependency>
-  <groupId>com.ibm.cloud</groupId>
-  <artifactId>appconfiguration-java-sdk</artifactId>
-  <version>1.0.0</version>
+    <groupId>com.ibm.cloud</groupId>
+    <artifactId>appconfiguration-java-sdk</artifactId>
+    <version>1.1.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```sh
-implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '1.0.0'
+implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '1.1.0'
 ```
 
 ## Import the SDK
@@ -41,23 +41,7 @@ implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', versio
 import com.ibm.cloud.appconfiguration.sdk.AppConfiguration
 ```
 
-## Authentication
-
-In order to use an IBM App Configuration service in a Java application, you will need to authenticate. The following describes the typical path you need to take to do so.
-
-### Step 1: Getting credentials
-
-Credentials to use an IBM App Configuration service are obtained via IBM Cloud. You will need an active account and a service instance for the service that you wish to use prior to authenticating in your Java app.
-
-You can access the service credentials for your instance by taking the following steps:
-
-1. Go to the IBM Cloud [Dashboard](https://cloud.ibm.com/) page.
-2. Either click an existing App Configuration service instance in your [resource list](https://cloud.ibm.com/resources) or click [**Create resource > Services > Developer Tools**](https://cloud.ibm.com/catalog?category=devops#services) and create an App Configuration service instance.
-3. Click on the **Service credentials** item in the left nav bar of your App Configuration service instance.
-
-On this page, you will see your credentials to use in the SDK to access your service instance. Get the `apikey` and `guid` from the credentials. 
-
-### Step 2: Initialize in Code
+## Initialize SDK
 
 ```java
 AppConfiguration appConfiguration = AppConfiguration.getInstance();
@@ -67,58 +51,56 @@ String apikey = "apikey";
 
 appConfiguration.init(AppConfiguration.REGION_US_SOUTH, guid, apikey);
 
-// Initialize feature 
-String collectionId = "collectionId"; // Id of the collection created in App Configuration service instance under the **Collections** section.
+String collectionId = "collectionId";
+//Set the collection Id
 appConfiguration.setCollectionId(collectionId);
 ```
 
-- region : Region name where the service instance is created. Eg: `AppConfiguration.REGION_US_SOUTH` is for the Dallas(us-south) region. 
+- region : Region name where the service instance is created. Use
+    - `AppConfiguration.REGION_US_SOUTH` for Dallas
+    - `AppConfiguration.REGION_EU_GB` for London
+    - `AppConfiguration.REGION_AU_SYD` for Sydney
 - guid : GUID of the App Configuration service. Get it from the service instance credentials section of the dashboard
 - apikey : ApiKey of the App Configuration service. Get it from the service instance credentials section of the dashboard
 - collectionId : Id of the collection created in App Configuration service instance under the **Collections** section.
 
-> Here, by default live features update from the server is enabled. To turn off this mode see the [below section](#work-offline-with-local-feature-file)
+> Here, by default live update from the server is enabled. To turn off this mode see the [below section](#work-offline-with-local-configuration-file)
 
-## Work offline with local feature file
+## Work offline with local configuration file
 
-You can also work offline with local feature file and perform feature [operations](#get-single-feature).
+You can also work offline with local configuration file and perform feature and property related operations.
 
 After setting the collection Id, follow the below steps
 
 ```java
-
-String featureFile = "custom/userJson.json";
-Boolean liveFeatureUpdateEnabled = true;
+String configurationFile = "custom/userJson.json";
+Boolean liveConfigUpdateEnabled = true;
 // set the file or offline feature
-appConfiguration.fetchFeaturesFromFile(featureFile, liveFeatureUpdateEnabled);
+appConfiguration.fetchConfigurationFromFile(configurationFile, liveConfigUpdateEnabled);
 ```
-* featureFile : Path to the JSON file which contains feature details and segment details.
-* liveFeatureUpdateEnabled : Set this value to false if the new feature values shouldn't be fetched from the server. Make sure to provide a proper JSON file in the featureFile path. By default, this value is enabled.
+* configurationFile : Path to the JSON file which contains configuration details.
+* liveConfigUpdateEnabled : Set this value to false if the new configuration values shouldn't be fetched from the server. Make sure to provide a proper JSON file in the configurationFile path. By default, this value is enabled.
 
 ## Get single feature
 
 ```java
 Feature feature = appConfiguration.getFeature("feature_id");
+
+if (feature) {
+    System.out.println("Feature Name : " + feature.getFeatureName());
+    System.out.println("Feature Id : " + feature.getFeatureId());
+    System.out.println("Feature Type : " + feature.getFeatureDataType());
+    System.out.println("Feature is enabled : " + feature.isEnabled());
+}
 ```
 
 ## Get all features 
 
 ```java
-Feature feature = appConfiguration.getFeatures();
+HashMap<String, Feature> features = appConfiguration.getFeatures();
 ```
 
-## Set listener for feature data changes
-
-```java
-appConfiguration.registerFeaturesUpdateListener(new FeaturesUpdateListener() {
-    @Override
-    public void onFeaturesUpdate() {
-       System.out.println("Got feature now");
-    }
-});
-```
-
-## Evaluate a feature
+## Evaluate a feature 
 
 You can use the feature.getCurrentValue(identityId, identityAttributes) method to evaluate the value of the feature flag. 
 
@@ -133,13 +115,59 @@ identityAttributes.put("country", "India");
 String value = (String) feature.getCurrentValue("identityId", identityAttributes);
 ```
 
+## Get single property
+
+```java
+Property property = appConfiguration.getProperty("property_id");
+
+if (property) {
+    System.out.println("Property Name : " + property.getPropertyName());
+    System.out.println("Property Id : " + property.getPropertyId());
+    System.out.println("Property Type : " + property.getPropertyDataType());
+}
+```
+
+## Get all properties 
+
+```java
+HashMap<String, Property> property = appConfiguration.getProperties();
+```
+
+## Evaluate a property 
+
+You can use the property.getCurrentValue(identityId, identityAttributes) method to evaluate the value of the property. 
+
+You should pass an unique identityId as the parameter to perform the property evaluation. If the property is configured with segments in the App Configuration service, you can set the attributes values as a JSONObject.
+
+```java
+
+JSONObject identityAttributes = new JSONObject();
+identityAttributes.put("city", "Bangalore");
+identityAttributes.put("country", "India");
+
+String value = (String) property.getCurrentValue("identityId", identityAttributes);
+```
+
+## Set listener for feature or property data changes
+
+To listen to the data changes add the following code in your application.
+
+```java
+appConfiguration.registerConfigurationUpdateListener(new ConfigurationUpdateListener() {
+    @Override
+    public void onConfigurationUpdate() {
+       System.out.println("Got feature/property now");
+    }
+});
+```
+
 ## Fetch latest data 
 
 ```java
-appConfiguration.fetchFeatureData()
+appConfiguration.fetchConfigurations()
 ```
 
-## Enable debugger
+## Enable debugger (Optional)
 
 ```py
 appConfiguration.enableDebug(True)

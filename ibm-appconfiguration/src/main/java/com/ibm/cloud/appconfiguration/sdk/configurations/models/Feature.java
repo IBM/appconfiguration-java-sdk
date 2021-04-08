@@ -14,12 +14,12 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk.feature.models;
+package com.ibm.cloud.appconfiguration.sdk.configurations.models;
 
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
-import com.ibm.cloud.appconfiguration.sdk.feature.FeatureHandler;
-import com.ibm.cloud.appconfiguration.sdk.feature.internal.Validators;
+import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -32,8 +32,7 @@ public class Feature {
     private String name;
     private String featureId;
     private JSONArray segmentRules;
-    private Boolean segmentExists;
-    private FeatureType type;
+    private ConfigurationType type;
     private Object disabledValue;
     private Object enabledValue;
 
@@ -43,9 +42,8 @@ public class Feature {
             this.enabled = featureData.getBoolean("isEnabled");
             this.name = featureData.getString("name");
             this.featureId = featureData.getString("feature_id");
-            this.segmentExists = featureData.getBoolean("segment_exists");
             this.segmentRules = featureData.getJSONArray("segment_rules");
-            this.type = FeatureType.valueOf(featureData.getString("type"));
+            this.type = ConfigurationType.valueOf(featureData.getString("type"));
             this.disabledValue = featureData.get("disabled_value");
             this.enabledValue = featureData.get("enabled_value");
 
@@ -74,7 +72,7 @@ public class Feature {
         return disabledValue;
     }
 
-    public FeatureType getFeatureDataType() {
+    public ConfigurationType getFeatureDataType() {
         return type;
     }
 
@@ -88,16 +86,8 @@ public class Feature {
             BaseLogger.error("A valid id should be passed for this method.");
             return null;
         }
-        FeatureHandler featureHandler = FeatureHandler.getInstance();
-        featureHandler.recordValuation(this.featureId);
-        if (this.enabled) {
-            if (this.segmentExists && this.segmentRules.length() > 0) {
-                return featureHandler.featureEvaluation(this, identityAttributes);
-            } else {
-                return this.enabledValue;
-            }
-        }
-        return this.disabledValue;
+        ConfigurationHandler configurationHandler = ConfigurationHandler.getInstance();
+        return configurationHandler.featureEvaluation(this, identityId, identityAttributes);
 
     }
 }

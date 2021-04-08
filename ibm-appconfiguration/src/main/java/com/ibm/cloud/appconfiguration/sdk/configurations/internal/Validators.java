@@ -14,10 +14,11 @@
  * limitations under the License.
  */
 
+package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
-package com.ibm.cloud.appconfiguration.sdk.feature.internal;
+public final class Validators {
 
-public interface ConnectivityListener {
-
-    void onConnectionChange(Boolean isConnected);
+    public static Boolean validateString(String value) {
+        return !(value == null || value.isEmpty() || value == "");
+    }
 }

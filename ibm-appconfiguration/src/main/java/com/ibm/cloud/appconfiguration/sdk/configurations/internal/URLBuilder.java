@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk.feature.internal;
+package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
 public class URLBuilder {
 

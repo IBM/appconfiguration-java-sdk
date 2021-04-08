@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk.feature.internal;
+package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
 import org.java_websocket.client.WebSocketClient;

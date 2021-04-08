@@ -14,10 +14,8 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk.feature;
+package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
-public interface FeaturesUpdateListener {
-
-    // This method will be called when there is a change in the features
-    public void onFeaturesUpdate();
+public interface RetryInterface {
+    void retryMethod();
 }

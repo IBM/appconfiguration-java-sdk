@@ -15,11 +15,10 @@
  */
 
 
-package com.ibm.cloud.appconfiguration.sdk.feature.internal;
+package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
-import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -29,7 +28,7 @@ import java.util.HashMap;
 
 public class FileManager {
 
-    private static final String fileName = "appconfiguration-features.json";
+    private static final String fileName = "appconfiguration.json";
 
     private static String getCacheUrl() {
         Path source = Paths.get(FileManager.class.getResource("/").getPath());
