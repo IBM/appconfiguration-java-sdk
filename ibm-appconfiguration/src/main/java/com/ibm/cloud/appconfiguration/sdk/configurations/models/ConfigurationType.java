@@ -14,8 +14,8 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk.feature.models;
+package com.ibm.cloud.appconfiguration.sdk.configurations.models;
 
-public enum FeatureType {
+public enum ConfigurationType {
     NUMERIC, STRING, BOOLEAN;
 }

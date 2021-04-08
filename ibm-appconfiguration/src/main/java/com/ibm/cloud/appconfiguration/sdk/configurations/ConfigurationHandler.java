@@ -14,23 +14,24 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk.feature;
+package com.ibm.cloud.appconfiguration.sdk.configurations;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.Property;
 import com.ibm.cloud.appconfiguration.sdk.core.*;
-import com.ibm.cloud.appconfiguration.sdk.feature.internal.*;
-import com.ibm.cloud.appconfiguration.sdk.feature.models.Feature;
-import com.ibm.cloud.appconfiguration.sdk.feature.models.internal.Segment;
-import com.ibm.cloud.appconfiguration.sdk.feature.models.internal.SegmentRules;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.*;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.Segment;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.SegmentRules;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Map;
 
-public class FeatureHandler {
+public class ConfigurationHandler {
 
-    private static FeatureHandler instance;
+    private static ConfigurationHandler instance;
 
     private int retryCount = 3;
     private String collectionId = "";
@@ -38,11 +39,12 @@ public class FeatureHandler {
     private String guid = "";
     private String region = "";
     private Boolean isInitialized = false;
-    private FeaturesUpdateListener featuresUpdateListener = null;
-    private HashMap<String , Feature> featureMap = new HashMap();
-    private HashMap<String , Segment> segmentMap = new HashMap();
-    private Boolean liveFeatureUpdateEnabled = true;
-    private String featureFile = null;
+    private ConfigurationUpdateListener configurationUpdateListener = null;
+    private HashMap<String, Feature> featureMap = new HashMap();
+    private HashMap<String, Property> propertyMap = new HashMap();
+    private HashMap<String, Segment> segmentMap = new HashMap();
+    private Boolean liveConfigUpdateEnabled = true;
+    private String configurationFile = null;
     private Boolean onSocketRetry = false;
     private String overrideServerHost = null;
 
@@ -54,14 +56,15 @@ public class FeatureHandler {
     private Connectivity connectivity = null;
     private Boolean isNetWorkConnected = true;
 
-    public synchronized static FeatureHandler getInstance() {
+    public synchronized static ConfigurationHandler getInstance() {
         if (instance == null) {
-            instance = new FeatureHandler();
+            instance = new ConfigurationHandler();
         }
         return instance;
     }
 
-    private FeatureHandler() {}
+    private ConfigurationHandler() {
+    }
 
     public void init(String apikey,
                      String guid,
@@ -74,6 +77,7 @@ public class FeatureHandler {
         this.overrideServerHost = overrideServerHost;
 
         this.featureMap = new HashMap<>();
+        this.propertyMap = new HashMap<>();
         this.segmentMap = new HashMap<>();
 
         Metering.getInstance().setMeteringUrl(URLBuilder.getMeteringUrl(guid), apikey);
@@ -88,12 +92,12 @@ public class FeatureHandler {
         URLBuilder.initWithCollectionId(collectionId, region, guid, overrideServerHost);
         this.isInitialized = true;
     }
+    
+    public void fetchConfigurationFromFile(Boolean liveConfigUpdateEnabled, String configurationFile) {
+        this.liveConfigUpdateEnabled = liveConfigUpdateEnabled;
+        this.configurationFile = configurationFile;
 
-    public void fetchFeaturesFromFile(Boolean liveFeatureUpdateEnabled, String featureFile) {
-        this.liveFeatureUpdateEnabled = liveFeatureUpdateEnabled;
-        this.featureFile = featureFile;
-
-        if (this.liveFeatureUpdateEnabled) {
+        if (this.liveConfigUpdateEnabled) {
             new Thread(() -> {
                 checkNetwork();
             }).start();
@@ -104,29 +108,47 @@ public class FeatureHandler {
 
         if (this.isInitialized) {
 
-            if (Validators.validateString(this.featureFile)) {
-                this.getFileData(this.featureFile);
+            if (Validators.validateString(this.configurationFile)) {
+                this.getFileData(this.configurationFile);
             }
-            this.loadFeatures();
-            if (this.liveFeatureUpdateEnabled) {
-                this.fetchFeaturesData();
+            this.loadConfigurations();
+            if (this.liveConfigUpdateEnabled) {
+                this.fetchConfigData();
             } else {
                 if (this.socket != null) {
                     this.socket.cancel();
                 }
             }
         } else {
-            BaseLogger.debug(FeatureMessages.FEATURE_HANDLER_INIT_ERROR);
+            BaseLogger.debug(ConfigMessages.CONFIG_HANDLER_INIT_ERROR);
         }
     }
 
-    public void registerFeaturesUpdateListener(FeaturesUpdateListener listener) {
+    public void registerConfigurationUpdateListener(ConfigurationUpdateListener listener) {
 
         if (this.isInitialized) {
-            this.featuresUpdateListener = listener;
-        } else  {
-            BaseLogger.debug(FeatureMessages.FEATURE_HANDLER_INIT_ERROR);
+            this.configurationUpdateListener = listener;
+        } else {
+            BaseLogger.debug(ConfigMessages.CONFIG_HANDLER_INIT_ERROR);
         }
+    }
+
+    public HashMap<String, Property> getProperties() {
+        return this.propertyMap;
+    }
+
+    public Property getProperty(String propertyId) {
+        if (propertyMap.containsKey(propertyId)) {
+            return propertyMap.get(propertyId);
+        } else {
+            this.loadConfigurations();
+            if (propertyMap.containsKey(propertyId)) {
+                return propertyMap.get(propertyId);
+            } else {
+                BaseLogger.error(ConfigMessages.PROPERTY_INVALID + propertyId);
+            }
+        }
+        return null;
     }
 
     public HashMap<String, Feature> getFeatures() {
@@ -137,11 +159,11 @@ public class FeatureHandler {
         if (featureMap.containsKey(featureId)) {
             return featureMap.get(featureId);
         } else {
-            this.loadFeatures();
+            this.loadConfigurations();
             if (featureMap.containsKey(featureId)) {
                 return featureMap.get(featureId);
             } else {
-                BaseLogger.error(FeatureMessages.FEATURE_INVALID + featureId);
+                BaseLogger.error(ConfigMessages.FEATURE_INVALID + featureId);
             }
         }
         return null;
@@ -149,7 +171,7 @@ public class FeatureHandler {
 
     private void checkNetwork() {
 
-        if (this.liveFeatureUpdateEnabled) {
+        if (this.liveConfigUpdateEnabled) {
             if (connectivity == null) {
                 connectivity = Connectivity.getInstance();
                 connectivity.addConnectivityListener(new ConnectivityListener() {
@@ -166,22 +188,22 @@ public class FeatureHandler {
     }
 
     private void connectionHandler(Boolean isConnected) {
-        if (!this.liveFeatureUpdateEnabled) {
+        if (!this.liveConfigUpdateEnabled) {
             connectivity = null;
             return;
         }
         if (isConnected) {
             if (!this.isNetWorkConnected) {
                 this.isNetWorkConnected = true;
-                this.fetchFeaturesData();
+                this.fetchConfigData();
             }
         } else {
-            BaseLogger.debug(FeatureMessages.NO_INTERNET_CONNECTION_ERROR);
+            BaseLogger.debug(ConfigMessages.NO_INTERNET_CONNECTION_ERROR);
             this.isNetWorkConnected = false;
         }
     }
 
-    private void fetchFeaturesData() {
+    private void fetchConfigData() {
         if (this.isInitialized) {
             this.retryCount = 3;
             this.fetchFromApi();
@@ -207,7 +229,7 @@ public class FeatureHandler {
 
         if (!data.isEmpty()) {
             try {
-                HashMap<String,Object> result =
+                HashMap<String, Object> result =
                         new ObjectMapper().readValue(data.toString(), HashMap.class);
                 this.writeToFile(result);
             } catch (Exception e) {
@@ -217,7 +239,7 @@ public class FeatureHandler {
         }
     }
 
-    private void loadFeatures() {
+    private void loadConfigurations() {
         JSONObject data = FileManager.readFiles(null);
         if (!data.isEmpty()) {
             if (data.has("features")) {
@@ -230,7 +252,21 @@ public class FeatureHandler {
                         this.featureMap.put(feature.getFeatureId(), feature);
                     }
                 } catch (Exception e) {
-                    AppConfigException.logException(this.getClass().getName(), "loadFeatures", e);
+                    AppConfigException.logException(this.getClass().getName(), "loadConfigurations", e);
+                }
+            }
+
+            if (data.has("properties")) {
+                this.propertyMap = new HashMap<>();
+                try {
+                    JSONArray array = (JSONArray) data.get("properties");
+                    for (int i = 0; i < array.length(); i++) {
+                        JSONObject propertyJson = array.getJSONObject(i);
+                        Property property = new Property(propertyJson);
+                        this.propertyMap.put(property.getPropertyId(), property);
+                    }
+                } catch (Exception e) {
+                    AppConfigException.logException(this.getClass().getName(), "loadConfigurations", e);
                 }
             }
 
@@ -244,23 +280,73 @@ public class FeatureHandler {
                         this.segmentMap.put(segment.getSegmentId(), segment);
                     }
                 } catch (Exception e) {
-                    AppConfigException.logException(this.getClass().getName(), "loadFeatures", e);
+                    AppConfigException.logException(this.getClass().getName(), "loadConfigurations", e);
                 }
             }
         }
     }
 
-    public void recordValuation(String featureId) {
-        Metering.getInstance().addMetering(this.guid, this.collectionId, featureId);
+    public void recordValuation(String featureId,String propertyId, String identityId, String segmentId ) {
+        Metering.getInstance().addMetering(this.guid, this.collectionId, identityId, segmentId, featureId, propertyId);
     }
 
-    public Object featureEvaluation(Feature feature, JSONObject identityAttributes) {
+    public Object propertyEvaluation(Property property, String identityId, JSONObject identityAttributes) {
 
-        if (identityAttributes == null || identityAttributes.isEmpty()) {
-            return feature.getEnabledValue();
+        JSONObject resultDict = new JSONObject();
+        resultDict.put("evaluated_segment_id", ConfigConstants.DEFAULT_SEGMENT_ID);
+        resultDict.put("value", new Object());
+
+        try {
+            if (identityAttributes == null || identityAttributes.isEmpty()) {
+                return property.getValue();
+            }
+            JSONArray segmentRules = property.getSegmentRules();
+            if (segmentRules.length() > 0) {
+                Map<Integer, SegmentRules> rulesMap = this.parseRules(segmentRules);
+                resultDict = evaluateRules(rulesMap,identityAttributes, null, property);
+                return resultDict.get("value");
+            } else {
+                return property.getValue();
+            }
+        } finally {
+            String propertyId = property.getPropertyId();
+            this.recordValuation(null, propertyId, identityId, resultDict.getString("evaluated_segment_id"));
         }
+    }
 
-        Map<Integer, SegmentRules> rulesMap = this.parseRules(feature.getSegmentRules());
+    public Object featureEvaluation(Feature feature, String identityId, JSONObject identityAttributes) {
+
+        JSONObject resultDict = new JSONObject();
+        resultDict.put("evaluated_segment_id", ConfigConstants.DEFAULT_SEGMENT_ID);
+        resultDict.put("value", new Object());
+
+        try {
+            if (feature.isEnabled()) {
+                if (identityAttributes == null || identityAttributes.isEmpty()) {
+                    return feature.getEnabledValue();
+                }
+                JSONArray segmentRules = feature.getSegmentRules();
+                if (segmentRules.length() > 0) {
+                    Map<Integer, SegmentRules> rulesMap = this.parseRules(segmentRules);
+                    resultDict = evaluateRules(rulesMap,identityAttributes, feature, null);
+                    return resultDict.get("value");
+                } else {
+                    return feature.getEnabledValue();
+                }
+            } else {
+                return feature.getDisabledValue();
+            }
+        } finally {
+            String featureId = feature.getFeatureId();
+            this.recordValuation(featureId, null, identityId, resultDict.getString("evaluated_segment_id"));
+        }
+    }
+
+    private JSONObject evaluateRules(Map<Integer, SegmentRules> rulesMap, JSONObject identityAttributes, Feature feature, Property property ) {
+
+        JSONObject resultDict = new JSONObject();
+        resultDict.put("evaluated_segment_id", ConfigConstants.DEFAULT_SEGMENT_ID);
+        resultDict.put("value", new Object());
 
         try {
             for (int i = 1; i <= rulesMap.size(); i++) {
@@ -274,22 +360,33 @@ public class FeatureHandler {
                             String segmentKey = segments.getString(innerLevel);
                             if (this.evaluateSegment(segmentKey, identityAttributes)) {
                                 if (segmentRule.getValue().equals("$default")) {
-                                    return feature.getEnabledValue();
+                                    resultDict.put("evaluated_segment_id", segmentKey);
+                                    if (feature != null) {
+                                        resultDict.put("value", feature.getEnabledValue());
+                                    } else {
+                                        resultDict.put("value", property.getValue());
+                                    }
                                 } else {
-                                    return segmentRule.getValue();
+                                    resultDict.put("value", segmentRule.getValue());
                                 }
+                                return resultDict;
                             }
                         }
                     }
                 }
             }
         } catch (Exception e) {
-            AppConfigException.logException(this.getClass().getName(), "featureEvaluation", e);
+            AppConfigException.logException(this.getClass().getName(), "RuleEvaluation", e);
         }
-        return feature.getEnabledValue();
+        if (feature != null) {
+            resultDict.put("value", feature.getEnabledValue());
+        } else {
+            resultDict.put("value", property.getValue());
+        }
+        return resultDict;
     }
 
-    private Boolean evaluateSegment(String segmentKey, JSONObject identityAttributes ) {
+    private Boolean evaluateSegment(String segmentKey, JSONObject identityAttributes) {
 
         if (this.segmentMap.containsKey(segmentKey)) {
             Segment segment = this.segmentMap.get(segmentKey);
@@ -314,16 +411,16 @@ public class FeatureHandler {
     }
 
     private void writeServerFile(HashMap json) {
-        if (this.liveFeatureUpdateEnabled) {
+        if (this.liveConfigUpdateEnabled) {
             this.writeToFile(json);
         }
     }
 
     private void writeToFile(HashMap json) {
         FileManager.storeFile(json);
-        this.loadFeatures();
-        if (this.featuresUpdateListener != null) {
-            this.featuresUpdateListener.onFeaturesUpdate();
+        this.loadConfigurations();
+        if (this.configurationUpdateListener != null) {
+            this.configurationUpdateListener.onConfigurationUpdate();
         }
     }
 
@@ -356,7 +453,7 @@ public class FeatureHandler {
 
                 @Override
                 public void onFailure(Integer statusCode, String responseBody) {
-                    BaseLogger.error(FeatureMessages.FEATURE_API_ERROR);
+                    BaseLogger.error(ConfigMessages.CONFIG_API_ERROR);
                     if (retryCount > 0) {
                         fetchFromApi();
                     } else {
@@ -366,7 +463,7 @@ public class FeatureHandler {
                 }
             });
         } else {
-            BaseLogger.debug(FeatureMessages.FEATURE_HANDLER_INIT_ERROR);
+            BaseLogger.debug(ConfigMessages.CONFIG_HANDLER_INIT_ERROR);
         }
     }
 

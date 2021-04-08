@@ -14,11 +14,11 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk.feature.internal;
+package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
-public final class Validators {
-
-    public static Boolean validateString(String value) {
-        return !(value == null || value.isEmpty() || value == "");
-    }
+public interface SocketHandler {
+    void onOpen(String openMessage);
+    void onMessage(String message);
+    void onClose(String closeMessage);
+    void onError(Exception e);
 }

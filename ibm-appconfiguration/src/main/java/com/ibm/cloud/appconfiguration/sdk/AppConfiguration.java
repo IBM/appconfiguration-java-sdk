@@ -16,12 +16,13 @@
 
 package com.ibm.cloud.appconfiguration.sdk;
 
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.Property;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
-import com.ibm.cloud.appconfiguration.sdk.feature.FeatureHandler;
-import com.ibm.cloud.appconfiguration.sdk.feature.FeaturesUpdateListener;
-import com.ibm.cloud.appconfiguration.sdk.feature.internal.FeatureMessages;
-import com.ibm.cloud.appconfiguration.sdk.feature.internal.Validators;
-import com.ibm.cloud.appconfiguration.sdk.feature.models.Feature;
+import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
+import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationUpdateListener;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigMessages;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
 
 import java.util.HashMap;
 
@@ -30,14 +31,15 @@ public class AppConfiguration {
     private static AppConfiguration instance;
     public final static String REGION_US_SOUTH = "us-south";
     public final static String REGION_EU_GB = "eu-gb";
+    public final static String REGION_AU_SYD = "au-syd";
     public static String overrideServerHost = null;
 
     private String apiKey = "";
     private String region = "";
     private String guid = "";
     private Boolean isInitialized = false;
-    private Boolean isInitializedFeature = false;
-    private FeatureHandler featureHandlerInstance = null;
+    private Boolean isInitializedConfig = false;
+    private ConfigurationHandler configurationHandlerInstance = null;
 
     public synchronized static AppConfiguration getInstance() {
         if (instance == null) {
@@ -50,15 +52,15 @@ public class AppConfiguration {
 
     public void init(String region, String guid, String apikey) {
         if (!Validators.validateString(region)) {
-            BaseLogger.error(FeatureMessages.REGION_ERROR);
+            BaseLogger.error(ConfigMessages.REGION_ERROR);
             return;
         }
         if (!Validators.validateString(apikey)) {
-            BaseLogger.error(FeatureMessages.APIKEY_ERROR);
+            BaseLogger.error(ConfigMessages.APIKEY_ERROR);
             return;
         }
         if (!Validators.validateString(guid)) {
-            BaseLogger.error(FeatureMessages.GUID_ERROR);
+            BaseLogger.error(ConfigMessages.GUID_ERROR);
             return;
         }
 
@@ -70,78 +72,96 @@ public class AppConfiguration {
     }
 
     private void setupFeatureHandler() {
-        this.featureHandlerInstance = FeatureHandler.getInstance();
-        this.featureHandlerInstance.init(this.apiKey, this.guid, this.region, overrideServerHost);
+        this.configurationHandlerInstance = ConfigurationHandler.getInstance();
+        this.configurationHandlerInstance.init(this.apiKey, this.guid, this.region, overrideServerHost);
     }
 
-    public void fetchFeaturesFromFile(String featureFile, Boolean liveFeatureUpdateEnabled) {
+    public void fetchConfigurationFromFile(String configurationFile, Boolean liveConfigUpdateEnabled) {
 
-        if (!this.isInitializedFeature || !this.isInitialized) {
-            BaseLogger.error(FeatureMessages.COLLECTION_ID_ERROR);
+        if (!this.isInitializedConfig || !this.isInitialized) {
+            BaseLogger.error(ConfigMessages.COLLECTION_ID_ERROR);
             return;
         }
 
-        if (!liveFeatureUpdateEnabled && !Validators.validateString(featureFile)) {
-            BaseLogger.error(FeatureMessages.FEATURE_FILE_NOT_FOUND_ERROR);
+        if (!liveConfigUpdateEnabled && !Validators.validateString(configurationFile)) {
+            BaseLogger.error(ConfigMessages.CONFIG_FILE_NOT_FOUND_ERROR);
             return;
         }
 
-        this.featureHandlerInstance.fetchFeaturesFromFile(liveFeatureUpdateEnabled, featureFile);
+        this.configurationHandlerInstance.fetchConfigurationFromFile(liveConfigUpdateEnabled, configurationFile);
         new Thread(() -> {
-            this.featureHandlerInstance.loadData();
+            this.configurationHandlerInstance.loadData();
         }).start();
 
     }
 
     public void setCollectionId(String collectionId) {
         if (!this.isInitialized) {
-            BaseLogger.error(FeatureMessages.COLLECTION_ID_ERROR);
+            BaseLogger.error(ConfigMessages.COLLECTION_ID_ERROR);
             return;
         }
         if (!Validators.validateString(collectionId)) {
-            BaseLogger.error(FeatureMessages.COLLECTION_ID_VALUE_ERROR);
+            BaseLogger.error(ConfigMessages.COLLECTION_ID_VALUE_ERROR);
             return;
         }
 
-        this.featureHandlerInstance.setCollectionId(collectionId);
+        this.configurationHandlerInstance.setCollectionId(collectionId);
         new Thread(() -> {
-            this.featureHandlerInstance.loadData();
+            this.configurationHandlerInstance.loadData();
         }).start();
-        this.isInitializedFeature = true;
+        this.isInitializedConfig = true;
     }
 
-    public void fetchFeatureData() {
-        if (this.isInitializedFeature && this.isInitialized) {
+    public void fetchConfigurations() {
+        if (this.isInitializedConfig && this.isInitialized) {
             new Thread(() -> {
-                this.featureHandlerInstance.loadData();
+                this.configurationHandlerInstance.loadData();
             }).start();
         } else {
-            BaseLogger.error(FeatureMessages.COLLECTION_SUB_ERROR);
+            BaseLogger.error(ConfigMessages.COLLECTION_INIT_ERROR);
         }
     }
 
-    public void registerFeaturesUpdateListener(FeaturesUpdateListener listener) {
-        if (this.isInitializedFeature && this.isInitialized) {
-            this.featureHandlerInstance.registerFeaturesUpdateListener(listener);
+    public void registerConfigurationUpdateListener(ConfigurationUpdateListener listener) {
+        if (this.isInitializedConfig && this.isInitialized) {
+            this.configurationHandlerInstance.registerConfigurationUpdateListener(listener);
         } else {
-            BaseLogger.error(FeatureMessages.COLLECTION_SUB_ERROR);
+            BaseLogger.error(ConfigMessages.COLLECTION_INIT_ERROR);
         }
     }
 
     public Feature getFeature(String featureId) {
-        if (this.isInitializedFeature && this.isInitialized) {
-            return this.featureHandlerInstance.getFeature(featureId);
+        if (this.isInitializedConfig && this.isInitialized) {
+            return this.configurationHandlerInstance.getFeature(featureId);
         } else {
-            BaseLogger.error(FeatureMessages.COLLECTION_SUB_ERROR);
+            BaseLogger.error(ConfigMessages.COLLECTION_INIT_ERROR);
         }
         return null;
     }
 
     public HashMap<String, Feature> getFeatures() {
-        if (this.isInitializedFeature && this.isInitialized) {
-            return this.featureHandlerInstance.getFeatures();
+        if (this.isInitializedConfig && this.isInitialized) {
+            return this.configurationHandlerInstance.getFeatures();
         } else {
-            BaseLogger.error(FeatureMessages.COLLECTION_SUB_ERROR);
+            BaseLogger.error(ConfigMessages.COLLECTION_INIT_ERROR);
+        }
+        return null;
+    }
+
+    public HashMap<String, Property> getProperties() {
+        if (this.isInitializedConfig && this.isInitialized) {
+            return this.configurationHandlerInstance.getProperties();
+        } else {
+            BaseLogger.error(ConfigMessages.COLLECTION_INIT_ERROR);
+        }
+        return null;
+    }
+
+    public Property getProperty(String propertyId) {
+        if (this.isInitializedConfig && this.isInitialized) {
+            return this.configurationHandlerInstance.getProperty(propertyId);
+        } else {
+            BaseLogger.error(ConfigMessages.COLLECTION_INIT_ERROR);
         }
         return null;
     }

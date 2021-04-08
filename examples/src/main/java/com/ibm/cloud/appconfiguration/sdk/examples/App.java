@@ -16,8 +16,10 @@
 
 package com.ibm.cloud.appconfiguration.sdk.examples;
 
-import com.ibm.cloud.appconfiguration.sdk.feature.FeaturesUpdateListener;
-import com.ibm.cloud.appconfiguration.sdk.feature.models.Feature;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.Property;
+import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationUpdateListener;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
+
 import org.json.JSONObject;
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -63,13 +65,16 @@ public class App {
         AppConfiguration appConfiguration = AppConfiguration.getInstance();
         Feature feature = appConfiguration.getFeature("featureId");
 
+        Property property = appConfiguration.getProperty("propertyId");
+
         JSONObject identityAttributes = new JSONObject();
         identityAttributes.put("city", "Bangalore");
         identityAttributes.put("country", "India");
         String value = (String) feature.getCurrentValue("pvrxe3", identityAttributes);
+        Integer propertyValue = (Integer) property.getCurrentValue("pvrxe3", identityAttributes);
 
 
-        byte[] notFoundContent = ("<h1>Hi " + value + "</h1>").getBytes();
+        byte[] notFoundContent = ("<h1>Hi Feature value is: " + value + ", Property value is: " + propertyvalue + "</h1> ").getBytes();
         sendResponse(client, "200 Not Found", "text/html", notFoundContent);
 
     }
@@ -90,7 +95,7 @@ public class App {
         appConfiguration.setCollectionId("collectionId");
         appConfiguration.enableDebug(true);
         //appConfiguration.fetchFeaturesFromFile("",true);
-       // appConfiguration.fetchFeatureData();
+        // appConfiguration.fetchFeatureData();
         appConfiguration.registerFeaturesUpdateListener(new FeaturesUpdateListener() {
             @Override
             public void onFeaturesUpdate() {

@@ -15,7 +15,7 @@
  */
 
 package com.ibm.cloud.appconfiguration.sdk;
-import com.ibm.cloud.appconfiguration.sdk.feature.models.internal.Rule;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.Rule;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;

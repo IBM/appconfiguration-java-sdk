@@ -14,10 +14,9 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk.feature.internal;
+package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
-import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
 
 import java.net.InetSocketAddress;
 import java.util.ArrayList;

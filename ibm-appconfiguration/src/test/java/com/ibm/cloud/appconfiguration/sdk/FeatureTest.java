@@ -15,17 +15,17 @@
  */
 package com.ibm.cloud.appconfiguration.sdk;
 
-import com.ibm.cloud.appconfiguration.sdk.feature.models.FeatureType;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationType;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
-import com.ibm.cloud.appconfiguration.sdk.feature.models.Feature;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
 
 public class FeatureTest {
 
     Feature sut;
-    public void setUpStringFeature(FeatureType type, Object disabled, Object enaabled, Boolean isEnabled) {
+    public void setUpStringFeature(ConfigurationType type, Object disabled, Object enaabled, Boolean isEnabled) {
 
         JSONObject feature = new JSONObject();
         try {
@@ -46,8 +46,8 @@ public class FeatureTest {
 
 
     @Test public void testFeature() {
-        setUpStringFeature(FeatureType.STRING, "unknown user","Org user", true );
-        assertEquals(sut.getFeatureDataType(), FeatureType.STRING);
+        setUpStringFeature(ConfigurationType.STRING, "unknown user","Org user", true );
+        assertEquals(sut.getFeatureDataType(), ConfigurationType.STRING);
         assertEquals(sut.getFeatureName(), "defaultFeature");
         assertEquals(sut.getFeatureId(), "defaultfeature");
         assertEquals(sut.isEnabled(), true);
@@ -55,8 +55,8 @@ public class FeatureTest {
 
     @Test
     public void testBooleanFeature() {
-        setUpStringFeature(FeatureType.BOOLEAN, false,true , true);
-        assertEquals(sut.getFeatureDataType(), FeatureType.BOOLEAN);
+        setUpStringFeature(ConfigurationType.BOOLEAN, false,true , true);
+        assertEquals(sut.getFeatureDataType(), ConfigurationType.BOOLEAN);
         assertEquals(sut.getFeatureName(), "defaultFeature");
         assertEquals(sut.getFeatureId(), "defaultfeature");
         assertEquals(sut.isEnabled(), true);
@@ -65,8 +65,8 @@ public class FeatureTest {
 
     @Test
     public void testNumericFeature() {
-        setUpStringFeature(FeatureType.NUMERIC, 20,50, false );
-        assertEquals(sut.getFeatureDataType(), FeatureType.NUMERIC);
+        setUpStringFeature(ConfigurationType.NUMERIC, 20,50, false );
+        assertEquals(sut.getFeatureDataType(), ConfigurationType.NUMERIC);
         assertEquals(sut.getFeatureName(), "defaultFeature");
         assertEquals(sut.getFeatureId(), "defaultfeature");
         assertEquals(sut.isEnabled(), false);

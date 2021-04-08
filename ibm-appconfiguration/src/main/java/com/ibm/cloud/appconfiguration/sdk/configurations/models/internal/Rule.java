@@ -14,11 +14,9 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk.feature.models.internal;
+package com.ibm.cloud.appconfiguration.sdk.configurations.models.internal;
 
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
-import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.json.JSONArray;
 import org.json.JSONObject;
 

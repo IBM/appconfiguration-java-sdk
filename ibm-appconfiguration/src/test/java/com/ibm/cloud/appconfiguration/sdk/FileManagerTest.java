@@ -18,7 +18,7 @@ package com.ibm.cloud.appconfiguration.sdk;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
-import com.ibm.cloud.appconfiguration.sdk.feature.internal.FileManager;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.FileManager;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
