@@ -18,45 +18,39 @@ package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
 public class URLBuilder {
 
-    private static final String baseurl = ".apprapp.cloud.ibm.com";
-
     private static final String wsUrl = "/wsfeature";
     private static final String path = "/feature/v1/instances/";
     private static final String service = "/apprapp";
-    private static final String httpType = "https://";
-    private static final String webSocketType = "wss://";
     private static final String events = "/events/v1/instances/";
     private static final String config = "config";
     private static String overrideServerHost = null;
     private static String region = "";
-    private static String guid = "";
     private static String httpBase = "";
     private static String webSocketBase = "";
 
 
-    public static void initWithCollectionId(String collectionId, String region, String guid, String overrideServerHost) {
+    public static void initWithContext(String collectionId, String environmentId, String region, String guid, String overrideServerHost) {
 
-        if (Validators.validateString(collectionId) && Validators.validateString(region) && Validators.validateString(guid)) {
+        if (Validators.validateString(collectionId) && Validators.validateString(environmentId) && Validators.validateString(region) && Validators.validateString(guid)) {
 
             URLBuilder.region = region;
             URLBuilder.overrideServerHost = overrideServerHost;
-            URLBuilder.guid = guid;
 
-            webSocketBase = webSocketType;
-            httpBase = httpType;
+            webSocketBase = ConfigConstants.DEFAULT_WSS_TYPE;
+            httpBase = ConfigConstants.DEFAULT_HTTP_TYPE;
 
             if (Validators.validateString(overrideServerHost)) {
-                httpBase += overrideServerHost;
-                webSocketBase += overrideServerHost;
+                httpBase = overrideServerHost;
+                webSocketBase += (overrideServerHost.replace("https://", "").replace("http://", ""));
             } else {
                 httpBase += region;
-                httpBase += baseurl;
+                httpBase += ConfigConstants.DEFAULT_BASE_URL;
                 webSocketBase += region;
-                webSocketBase += baseurl;
+                webSocketBase += ConfigConstants.DEFAULT_BASE_URL;;
             }
 
-            httpBase += String.format("%s%s%s/collections/%s/%s", service, path, guid, collectionId, config);
-            webSocketBase += String.format("%s%s?instance_id=%s&collection_id=%s", service, wsUrl, guid, collectionId);
+            httpBase += String.format("%s%s%s/collections/%s/%s?environment_id=%s", service, path, guid, collectionId, config, environmentId);
+            webSocketBase += String.format("%s%s?instance_id=%s&collection_id=%s&environment_id=%s", service, wsUrl, guid, collectionId, environmentId);
         }
     }
 
@@ -69,11 +63,11 @@ public class URLBuilder {
     }
 
     public static String getMeteringUrl(String guid) {
-        String base = httpType;
+        String base = ConfigConstants.DEFAULT_HTTP_TYPE;
         if (Validators.validateString(overrideServerHost)) {
-            base += overrideServerHost + service;
+            base = overrideServerHost + service;
         } else {
-            base += region + baseurl + service;
+            base += region + ConfigConstants.DEFAULT_BASE_URL + service;
         }
         return base + events + guid + "/usage";
     }

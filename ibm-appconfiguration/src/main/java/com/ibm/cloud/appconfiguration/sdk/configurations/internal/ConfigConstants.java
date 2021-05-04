@@ -19,5 +19,10 @@ package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 public class ConfigConstants {
 
     public final static String DEFAULT_SEGMENT_ID = "$$null$$";
+    public final static String DEFAULT_HTTP_TYPE = "https://";
+    public final static String DEFAULT_WSS_TYPE = "wss://";
+    public final static String DEFAULT_BASE_URL = ".apprapp.cloud.ibm.com";
+    public final static int DEFAULT_USAGE_LIMIT = 25;
+
 
 }

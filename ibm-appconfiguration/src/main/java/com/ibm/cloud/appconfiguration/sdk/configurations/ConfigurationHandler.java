@@ -35,6 +35,7 @@ public class ConfigurationHandler {
 
     private int retryCount = 3;
     private String collectionId = "";
+    private String environmentId = "";
     private String apikey = "";
     private String guid = "";
     private String region = "";
@@ -79,28 +80,20 @@ public class ConfigurationHandler {
         this.featureMap = new HashMap<>();
         this.propertyMap = new HashMap<>();
         this.segmentMap = new HashMap<>();
+    }
 
+    public void setContext(String collectionId, String environmentId, String configurationFile, Boolean liveConfigUpdateEnabled) {
+        this.collectionId = collectionId;
+        this.environmentId = environmentId;
+        URLBuilder.initWithContext(collectionId, environmentId, region, guid, overrideServerHost);
         Metering.getInstance().setMeteringUrl(URLBuilder.getMeteringUrl(guid), apikey);
 
-        new Thread(() -> {
-            checkNetwork();
-        }).start();
-    }
-
-    public void setCollectionId(String collectionId) {
-        this.collectionId = collectionId;
-        URLBuilder.initWithCollectionId(collectionId, region, guid, overrideServerHost);
-        this.isInitialized = true;
-    }
-    
-    public void fetchConfigurationFromFile(Boolean liveConfigUpdateEnabled, String configurationFile) {
         this.liveConfigUpdateEnabled = liveConfigUpdateEnabled;
         this.configurationFile = configurationFile;
+        this.isInitialized = true;
 
         if (this.liveConfigUpdateEnabled) {
-            new Thread(() -> {
-                checkNetwork();
-            }).start();
+            new Thread(() -> checkNetwork()).start();
         }
     }
 
@@ -174,12 +167,7 @@ public class ConfigurationHandler {
         if (this.liveConfigUpdateEnabled) {
             if (connectivity == null) {
                 connectivity = Connectivity.getInstance();
-                connectivity.addConnectivityListener(new ConnectivityListener() {
-                    @Override
-                    public void onConnectionChange(Boolean isConnected) {
-                        connectionHandler(isConnected);
-                    }
-                });
+                connectivity.addConnectivityListener(isConnected -> connectionHandler(isConnected));
                 connectivity.checkConnection();
             }
         } else {
@@ -205,9 +193,11 @@ public class ConfigurationHandler {
 
     private void fetchConfigData() {
         if (this.isInitialized) {
+
             this.retryCount = 3;
             this.fetchFromApi();
-            this.startWebSocket();
+            this.onSocketRetry = false;
+            new Thread(() -> this.startWebSocket()).start();
         }
     }
 
@@ -218,6 +208,7 @@ public class ConfigurationHandler {
 
         if (this.socket != null) {
             this.socket.cancel();
+            this.socket = null;
         }
         String socketUrl = URLBuilder.getWebSocketUrl();
         this.socket = new Socket.Builder().url(socketUrl).headers(headers).listener(this.getSocketHandler()).build();
@@ -287,7 +278,7 @@ public class ConfigurationHandler {
     }
 
     public void recordValuation(String featureId,String propertyId, String identityId, String segmentId ) {
-        Metering.getInstance().addMetering(this.guid, this.collectionId, identityId, segmentId, featureId, propertyId);
+        Metering.getInstance().addMetering(this.guid, this.environmentId, this.collectionId, identityId, segmentId, featureId, propertyId);
     }
 
     public Object propertyEvaluation(Property property, String identityId, JSONObject identityAttributes) {
@@ -359,8 +350,8 @@ public class ConfigurationHandler {
                         for (int innerLevel = 0; innerLevel < segments.length(); innerLevel++) {
                             String segmentKey = segments.getString(innerLevel);
                             if (this.evaluateSegment(segmentKey, identityAttributes)) {
+                                resultDict.put("evaluated_segment_id", segmentKey);
                                 if (segmentRule.getValue().equals("$default")) {
-                                    resultDict.put("evaluated_segment_id", segmentKey);
                                     if (feature != null) {
                                         resultDict.put("value", feature.getEnabledValue());
                                     } else {
@@ -487,12 +478,17 @@ public class ConfigurationHandler {
             this.socketRetry.cancel();
             this.socketRetry = null;
         }
+        if (this.socket == null) {
+            return;
+        }
         socketRetry = new RetryHandler(new RetryInterface() {
             @Override
             public void retryMethod() {
                 startWebSocket();
+                socketRetry.cancel();
+                socketRetry = null;
             }
-        }, -1);
+        }, 5000);
     }
 
     private SocketHandler getSocketHandler() {
@@ -522,6 +518,7 @@ public class ConfigurationHandler {
                 public void onClose(String closeMessage) {
                     BaseLogger.debug("Received close connection from socket");
                     onSocketRetry = true;
+                    startSocketRetryTimer();
                 }
 
                 @Override

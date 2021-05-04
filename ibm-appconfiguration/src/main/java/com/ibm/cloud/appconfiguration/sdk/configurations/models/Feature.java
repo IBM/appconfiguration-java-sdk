@@ -39,7 +39,7 @@ public class Feature {
     public Feature(JSONObject featureData) {
 
         try {
-            this.enabled = featureData.getBoolean("isEnabled");
+            this.enabled = featureData.getBoolean("enabled");
             this.name = featureData.getString("name");
             this.featureId = featureData.getString("feature_id");
             this.segmentRules = featureData.getJSONArray("segment_rules");

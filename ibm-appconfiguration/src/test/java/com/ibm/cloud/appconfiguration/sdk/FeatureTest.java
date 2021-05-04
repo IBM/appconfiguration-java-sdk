@@ -34,7 +34,7 @@ public class FeatureTest {
             feature.put("type",type.toString());
             feature.put("disabled_value",disabled);
             feature.put("enabled_value",enaabled);
-            feature.put("isEnabled",isEnabled);
+            feature.put("enabled",isEnabled);
             feature.put("segment_exists", false);
             feature.put("segment_rules",new JSONArray());
 

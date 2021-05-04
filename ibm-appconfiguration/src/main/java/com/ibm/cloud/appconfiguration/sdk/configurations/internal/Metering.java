@@ -21,6 +21,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,13 +29,13 @@ import java.util.concurrent.ConcurrentHashMap;
 public class Metering {
 
     private static Metering instance;
-    private int sendInterval = 10000;
+    private int sendInterval = 600000;
     private String meteringUrl = null;
     private String apikey = null;
 
-    ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>> meteringFeatureData =
+    ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> meteringFeatureData =
             new ConcurrentHashMap();
-    ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>> meteringPropertyData =
+    ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> meteringPropertyData =
             new ConcurrentHashMap();
 
     public synchronized static Metering getInstance() {
@@ -58,7 +59,7 @@ public class Metering {
         this.apikey = apikey;
     }
 
-    public synchronized void addMetering(String guid, String collectionId, String identityId, String segmentId, String featureId, String propertyId) {
+    public synchronized void addMetering(String guid, String environmentId, String collectionId, String identityId, String segmentId, String featureId, String propertyId) {
 
         Boolean hasData = false;
         HashMap<String, Object> featureJson = new HashMap();
@@ -66,93 +67,112 @@ public class Metering {
         Instant currentDate = Instant.now();
         featureJson.put("evaluation_time", currentDate);
 
-        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>> meteringData = featureId != null ? this.meteringFeatureData : this.meteringPropertyData;
+        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> meteringData = featureId != null ? this.meteringFeatureData : this.meteringPropertyData;
         String modifyKey = featureId != null ? featureId : propertyId;
 
         if (meteringData.containsKey(guid)) {
-            if (meteringData.get(guid).containsKey(collectionId)) {
-                if (meteringData.get(guid).get(collectionId).containsKey(modifyKey)) {
-                    if (meteringData.get(guid).get(collectionId).get(modifyKey).containsKey(identityId)) {
-                        if (meteringData.get(guid).get(collectionId).get(modifyKey).get(identityId).containsKey(segmentId)) {
-                            hasData = true;
-                            meteringData.get(guid).get(collectionId).get(modifyKey).get(identityId).get(segmentId).put("evaluation_time", currentDate);
-                            int count = (int) meteringData.get(guid).get(collectionId).get(modifyKey).get(identityId).get(segmentId).get("count");
-                            meteringData.get(guid).get(collectionId).get(modifyKey).get(identityId).get(segmentId).put("count", count + 1);
+
+            if (meteringData.get(guid).containsKey(environmentId)) {
+
+                if (meteringData.get(guid).get(environmentId).containsKey(collectionId)) {
+                    if (meteringData.get(guid).get(environmentId).get(collectionId).containsKey(modifyKey)) {
+                        if (meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).containsKey(identityId)) {
+                            if (meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).get(identityId).containsKey(segmentId)) {
+                                hasData = true;
+                                meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).get(identityId).get(segmentId).put("evaluation_time", currentDate);
+                                int count = (int) meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).get(identityId).get(segmentId).get("count");
+                                meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).get(identityId).get(segmentId).put("count", count + 1);
+                            }
+                        } else {
+                            ConcurrentHashMap<String, HashMap<String, Object>> segmentIdMap = new ConcurrentHashMap();
+                            segmentIdMap.put(segmentId, new HashMap());
+                            meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).put(identityId, segmentIdMap);
                         }
                     } else {
                         ConcurrentHashMap<String, HashMap<String, Object>> segmentIdMap = new ConcurrentHashMap();
+                        ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>> identityIdMap = new ConcurrentHashMap();
                         segmentIdMap.put(segmentId, new HashMap());
-                        meteringData.get(guid).get(collectionId).get(modifyKey).put(identityId, segmentIdMap);
+                        identityIdMap.put(identityId, segmentIdMap);
+                        meteringData.get(guid).get(environmentId).get(collectionId).put(modifyKey, identityIdMap);
                     }
                 } else {
                     ConcurrentHashMap<String, HashMap<String, Object>> segmentIdMap = new ConcurrentHashMap();
                     ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>> identityIdMap = new ConcurrentHashMap();
+                    ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>> featureIdMap = new ConcurrentHashMap();
                     segmentIdMap.put(segmentId, new HashMap());
                     identityIdMap.put(identityId, segmentIdMap);
-                    meteringData.get(guid).get(collectionId).put(modifyKey, identityIdMap);
+                    featureIdMap.put(modifyKey, identityIdMap);
+                    meteringData.get(guid).get(environmentId).put(collectionId, featureIdMap);
                 }
             } else {
+
                 ConcurrentHashMap<String, HashMap<String, Object>> segmentIdMap = new ConcurrentHashMap();
                 ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>> identityIdMap = new ConcurrentHashMap();
                 ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>> featureIdMap = new ConcurrentHashMap();
+                ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>> collectionIdMap = new ConcurrentHashMap();
                 segmentIdMap.put(segmentId, new HashMap());
                 identityIdMap.put(identityId, segmentIdMap);
                 featureIdMap.put(modifyKey, identityIdMap);
-                meteringData.get(guid).put(collectionId, featureIdMap);
+                collectionIdMap.put(collectionId, featureIdMap);
+                meteringData.get(guid).put(environmentId, collectionIdMap);
             }
         } else {
             ConcurrentHashMap<String, HashMap<String, Object>> segmentIdMap = new ConcurrentHashMap();
             ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>> identityIdMap = new ConcurrentHashMap();
             ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>> featureIdMap = new ConcurrentHashMap();
             ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>> collectionIdMap = new ConcurrentHashMap();
+            ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>> environmentIdMap = new ConcurrentHashMap();
             segmentIdMap.put(segmentId, new HashMap());
             identityIdMap.put(identityId, segmentIdMap);
             featureIdMap.put(modifyKey, identityIdMap);
             collectionIdMap.put(collectionId, featureIdMap);
-            meteringData.put(guid, collectionIdMap);
+            environmentIdMap.put(environmentId, collectionIdMap);
+            meteringData.put(guid, environmentIdMap);
         }
         if (!hasData) {
-            meteringData.get(guid).get(collectionId).get(modifyKey).get(identityId).put(segmentId, featureJson);
+            meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).get(identityId).put(segmentId, featureJson);
         }
     }
 
-    private synchronized void buildRequestBody(ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>> sendMeteringData, HashMap<String, JSONArray> result, String key) {
+    private synchronized void buildRequestBody(ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> sendMeteringData, HashMap<String, JSONArray> result, String key) {
 
         sendMeteringData.forEach((guid, guidMap) -> {
 
             if (!result.containsKey(guid)) {
                 result.put(guid, new JSONArray());
             }
+            guidMap.forEach((environmentId, environmentMap) -> {
+                environmentMap.forEach((collectionId, collectionMap) -> {
+                    JSONObject collections = new JSONObject();
+                    collections.put("collection_id", collectionId);
+                    collections.put("environment_id", environmentId);
+                    collections.put("usages", new JSONArray());
 
-            guidMap.forEach((collectionId, collectionMap) -> {
-
-                JSONObject collections = new JSONObject();
-                collections.put("collection_id", collectionId);
-                collections.put("usages", new JSONArray());
-
-                collectionMap.forEach((featureId, featureIdMap) -> {
-                    featureIdMap.forEach((identityId, identityMap) -> {
-                        identityMap.forEach((segmentId, segmentIdMap) -> {
-                            JSONObject usages = new JSONObject();
-                            usages.put(key, featureId);
-                            usages.put("identity_id", identityId);
-                            usages.put("segment_id", segmentId == "$$null$$" ? JSONObject.NULL : segmentId);
-                            usages.put("evaluation_time", segmentIdMap.get("evaluation_time"));
-                            usages.put("count", segmentIdMap.get("count"));
-                            collections.getJSONArray("usages").put(usages);
+                    collectionMap.forEach((featureId, featureIdMap) -> {
+                        featureIdMap.forEach((identityId, identityMap) -> {
+                            identityMap.forEach((segmentId, segmentIdMap) -> {
+                                JSONObject usages = new JSONObject();
+                                usages.put(key, featureId);
+                                usages.put("identity_id", identityId);
+                                usages.put("segment_id", segmentId == "$$null$$" ? JSONObject.NULL : segmentId);
+                                usages.put("evaluation_time", segmentIdMap.get("evaluation_time"));
+                                usages.put("count", segmentIdMap.get("count"));
+                                collections.getJSONArray("usages").put(usages);
+                            });
                         });
                     });
+                    result.get(guid).put(collections);
                 });
-                result.get(guid).put(collections);
             });
+
         });
     }
 
     public synchronized HashMap sendMetering() {
 
-        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>> sendFeatureData =
+        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> sendFeatureData =
                 this.meteringFeatureData;
-        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>> sendPropertyData =
+        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> sendPropertyData =
                 this.meteringPropertyData;
 
         this.meteringFeatureData = new ConcurrentHashMap();
@@ -174,19 +194,42 @@ public class Metering {
 
         result.forEach((guid, dataArray) -> {
             dataArray.forEach((json) -> {
-                this.sendToServer(guid, (JSONObject) json);
+                int count = ((JSONObject) json).getJSONArray("usages").length();
+                if (count > 25) {
+                    this.sendSplitMetering(guid, (JSONObject) json, count);
+                } else {
+                    this.sendToServer(guid, (JSONObject) json);
+                }
             });
         });
 
         return result;
     }
 
+    public void sendSplitMetering(String guid, JSONObject data, int count) {
+
+        int lim = 0;
+
+        JSONArray subUsagesArray = data.getJSONArray("usages");
+
+        while (lim <= count) {
+            int endIndex = lim+ConfigConstants.DEFAULT_USAGE_LIMIT >= count ? count : lim+ConfigConstants.DEFAULT_USAGE_LIMIT;
+            JSONObject collectionsMap = new JSONObject();
+            collectionsMap.put("collection_id", data.getString("collection_id"));
+            collectionsMap.put("environment_id", data.getString("environment_id"));
+            JSONArray usagesArray = new JSONArray();
+            for (int i = lim; i < endIndex; i++) {
+                usagesArray.put(subUsagesArray.get(i));
+            }
+            collectionsMap.put("usages", usagesArray);
+            this.sendToServer(guid, collectionsMap);
+            lim += ConfigConstants.DEFAULT_USAGE_LIMIT;
+        }
+    }
     private void sendToServer(String guid, JSONObject data ) {
 
         Map<String, String> headers = new HashMap<>();
         headers.put("Authorization", this.apikey);
-        headers.put("Content-Type", "application/json");
-
         BaseRequest baseRequest = new BaseRequest.Builder().url(URLBuilder.getMeteringUrl(guid)).method(RequestTypes.POST).body(data).headers(headers).build();
 
         baseRequest.execute(new AppConfigurationResponseListener() {

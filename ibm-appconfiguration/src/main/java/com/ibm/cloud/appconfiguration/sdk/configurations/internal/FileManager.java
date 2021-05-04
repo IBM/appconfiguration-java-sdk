@@ -59,10 +59,12 @@ public class FileManager {
         if (filePath == null) {
             path = FileManager.getCacheUrl();
         }
-        try {
-
+        readFiles: try {
             File targetFile = new File(path);
             boolean success = targetFile.createNewFile();
+            if (targetFile.length()  == 0) {
+                break readFiles;
+            }
             ObjectMapper mapper = new ObjectMapper();
             data = mapper.readValue(Paths.get(path).toFile(), HashMap.class);
         } catch (Exception e) {

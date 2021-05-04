@@ -91,16 +91,16 @@ public class App {
     }
     static void setUp() {
         AppConfiguration appConfiguration = AppConfiguration.getInstance();
-        appConfiguration.init(AppConfiguration.REGION_US_SOUTH, "AppGUID", "APIKEY");
-        appConfiguration.setCollectionId("collectionId");
         appConfiguration.enableDebug(true);
-        //appConfiguration.fetchFeaturesFromFile("",true);
-        // appConfiguration.fetchFeatureData();
-        appConfiguration.registerFeaturesUpdateListener(new FeaturesUpdateListener() {
+        appConfiguration.init(AppConfiguration.REGION_US_SOUTH, "AppGUID", "APIKEY");
+        appConfiguration.setContext("collectionId", "environmentId");
+        // appConfiguration.setContext("collectionId", "environmentId", "path_to_file", true);
+        // appConfiguration.fetchConfigurations();
+        appConfiguration.registerConfigurationUpdateListener(new ConfigurationUpdateListener() {
             @Override
-            public void onFeaturesUpdate() {
+            public void onConfigurationUpdate() {
 
-                System.out.println("Got feature now");
+                System.out.println("Got updates now");
             }
         });
     }
