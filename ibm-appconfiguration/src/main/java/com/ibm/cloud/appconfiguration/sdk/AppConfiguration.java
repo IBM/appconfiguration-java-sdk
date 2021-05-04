@@ -68,34 +68,20 @@ public class AppConfiguration {
         this.guid = guid;
         this.region = region;
         this.isInitialized = true;
-        this.setupFeatureHandler();
+        this.setupConfigureHandler();
     }
 
-    private void setupFeatureHandler() {
+    private void setupConfigureHandler() {
         this.configurationHandlerInstance = ConfigurationHandler.getInstance();
         this.configurationHandlerInstance.init(this.apiKey, this.guid, this.region, overrideServerHost);
     }
 
-    public void fetchConfigurationFromFile(String configurationFile, Boolean liveConfigUpdateEnabled) {
-
-        if (!this.isInitializedConfig || !this.isInitialized) {
-            BaseLogger.error(ConfigMessages.COLLECTION_ID_ERROR);
-            return;
-        }
-
-        if (!liveConfigUpdateEnabled && !Validators.validateString(configurationFile)) {
-            BaseLogger.error(ConfigMessages.CONFIG_FILE_NOT_FOUND_ERROR);
-            return;
-        }
-
-        this.configurationHandlerInstance.fetchConfigurationFromFile(liveConfigUpdateEnabled, configurationFile);
-        new Thread(() -> {
-            this.configurationHandlerInstance.loadData();
-        }).start();
-
+    public void setContext(String collectionId, String environmentId) {
+        this.setContext(collectionId, environmentId, null, true);
     }
 
-    public void setCollectionId(String collectionId) {
+    public void setContext(String collectionId, String environmentId, String configurationFile, Boolean liveConfigUpdateEnabled) {
+
         if (!this.isInitialized) {
             BaseLogger.error(ConfigMessages.COLLECTION_ID_ERROR);
             return;
@@ -105,18 +91,23 @@ public class AppConfiguration {
             return;
         }
 
-        this.configurationHandlerInstance.setCollectionId(collectionId);
-        new Thread(() -> {
-            this.configurationHandlerInstance.loadData();
-        }).start();
+        if (!Validators.validateString(environmentId)) {
+            BaseLogger.error(ConfigMessages.ENVIRONMENT_ID_VALUE_ERROR);
+            return;
+        }
+        if (!liveConfigUpdateEnabled && !Validators.validateString(configurationFile)) {
+            BaseLogger.error(ConfigMessages.CONFIG_FILE_NOT_FOUND_ERROR);
+            return;
+        }
         this.isInitializedConfig = true;
+
+        this.configurationHandlerInstance.setContext(collectionId, environmentId, configurationFile, liveConfigUpdateEnabled);
+        this.configurationHandlerInstance.loadData();
     }
 
     public void fetchConfigurations() {
         if (this.isInitializedConfig && this.isInitialized) {
-            new Thread(() -> {
-                this.configurationHandlerInstance.loadData();
-            }).start();
+            this.configurationHandlerInstance.loadData();
         } else {
             BaseLogger.error(ConfigMessages.COLLECTION_INIT_ERROR);
         }

@@ -25,14 +25,14 @@ Instrument your applications with App Configuration Java SDK, and use the App Co
 <dependency>
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>1.1.0</version>
+    <version>2.0.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```sh
-implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '1.1.0'
+implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '2.0.0'
 ```
 
 ## Import the SDK
@@ -52,8 +52,9 @@ String apikey = "apikey";
 appConfiguration.init(AppConfiguration.REGION_US_SOUTH, guid, apikey);
 
 String collectionId = "collectionId";
-//Set the collection Id
-appConfiguration.setCollectionId(collectionId);
+String environmentId = "environmentId";
+
+appConfiguration.setContext(collectionId, environmentId)
 ```
 
 - region : Region name where the service instance is created. Use
@@ -63,23 +64,23 @@ appConfiguration.setCollectionId(collectionId);
 - guid : GUID of the App Configuration service. Get it from the service instance credentials section of the dashboard
 - apikey : ApiKey of the App Configuration service. Get it from the service instance credentials section of the dashboard
 - collectionId : Id of the collection created in App Configuration service instance under the **Collections** section.
+- environmentId : Id of the environment created in App Configuration service instance under the **Environments** section.
 
 > Here, by default live update from the server is enabled. To turn off this mode see the [below section](#work-offline-with-local-configuration-file)
 
-## Work offline with local configuration file
-
+### Work offline with local configuration file
 You can also work offline with local configuration file and perform feature and property related operations.
 
-After setting the collection Id, follow the below steps
-
 ```java
+
 String configurationFile = "custom/userJson.json";
 Boolean liveConfigUpdateEnabled = true;
-// set the file or offline feature
-appConfiguration.fetchConfigurationFromFile(configurationFile, liveConfigUpdateEnabled);
+
+appConfiguration.setContext(collectionId, environmentId, configurationFile, liveConfigUpdateEnabled);
+
 ```
-* configurationFile : Path to the JSON file which contains configuration details.
-* liveConfigUpdateEnabled : Set this value to false if the new configuration values shouldn't be fetched from the server. Make sure to provide a proper JSON file in the configurationFile path. By default, this value is enabled.
+- configurationFile : Path to the JSON file which contains configuration details.
+- liveConfigUpdateEnabled : Set this value to false if the new configuration values shouldn't be fetched from the server. Make sure to provide a proper JSON file in the configurationFile path. By default, this value is enabled.
 
 ## Get single feature
 

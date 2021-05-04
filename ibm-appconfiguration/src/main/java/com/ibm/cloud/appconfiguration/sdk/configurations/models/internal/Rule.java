@@ -144,7 +144,7 @@ public class Rule {
                 Float keyValue = ((Number) value).floatValue();
                 return new Conversions(true, keyValue);
             } else if (value instanceof String) {
-                Float keyValue = Integer.valueOf(value.toString()).floatValue();
+                Float keyValue = Float.valueOf(value.toString());
                 return new Conversions(true, keyValue);
             }
         } catch (Exception e) {
