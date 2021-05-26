@@ -25,14 +25,14 @@ Instrument your applications with App Configuration Java SDK, and use the App Co
 <dependency>
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>2.0.0</version>
+    <version>0.0.1</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```sh
-implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '2.0.0'
+implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.0.1'
 ```
 
 ## Import the SDK
