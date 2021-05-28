@@ -277,35 +277,35 @@ public class ConfigurationHandler {
         }
     }
 
-    public void recordValuation(String featureId,String propertyId, String identityId, String segmentId ) {
-        Metering.getInstance().addMetering(this.guid, this.environmentId, this.collectionId, identityId, segmentId, featureId, propertyId);
+    public void recordValuation(String featureId,String propertyId, String entityId, String segmentId ) {
+        Metering.getInstance().addMetering(this.guid, this.environmentId, this.collectionId, entityId, segmentId, featureId, propertyId);
     }
 
-    public Object propertyEvaluation(Property property, String identityId, JSONObject identityAttributes) {
+    public Object propertyEvaluation(Property property, String entityId, JSONObject entityAttributes) {
 
         JSONObject resultDict = new JSONObject();
         resultDict.put("evaluated_segment_id", ConfigConstants.DEFAULT_SEGMENT_ID);
         resultDict.put("value", new Object());
 
         try {
-            if (identityAttributes == null || identityAttributes.isEmpty()) {
+            if (entityAttributes == null || entityAttributes.isEmpty()) {
                 return property.getValue();
             }
             JSONArray segmentRules = property.getSegmentRules();
             if (segmentRules.length() > 0) {
                 Map<Integer, SegmentRules> rulesMap = this.parseRules(segmentRules);
-                resultDict = evaluateRules(rulesMap,identityAttributes, null, property);
+                resultDict = evaluateRules(rulesMap,entityAttributes, null, property);
                 return resultDict.get("value");
             } else {
                 return property.getValue();
             }
         } finally {
             String propertyId = property.getPropertyId();
-            this.recordValuation(null, propertyId, identityId, resultDict.getString("evaluated_segment_id"));
+            this.recordValuation(null, propertyId, entityId, resultDict.getString("evaluated_segment_id"));
         }
     }
 
-    public Object featureEvaluation(Feature feature, String identityId, JSONObject identityAttributes) {
+    public Object featureEvaluation(Feature feature, String entityId, JSONObject entityAttributes) {
 
         JSONObject resultDict = new JSONObject();
         resultDict.put("evaluated_segment_id", ConfigConstants.DEFAULT_SEGMENT_ID);
@@ -313,13 +313,13 @@ public class ConfigurationHandler {
 
         try {
             if (feature.isEnabled()) {
-                if (identityAttributes == null || identityAttributes.isEmpty()) {
+                if (entityAttributes == null || entityAttributes.isEmpty()) {
                     return feature.getEnabledValue();
                 }
                 JSONArray segmentRules = feature.getSegmentRules();
                 if (segmentRules.length() > 0) {
                     Map<Integer, SegmentRules> rulesMap = this.parseRules(segmentRules);
-                    resultDict = evaluateRules(rulesMap,identityAttributes, feature, null);
+                    resultDict = evaluateRules(rulesMap,entityAttributes, feature, null);
                     return resultDict.get("value");
                 } else {
                     return feature.getEnabledValue();
@@ -329,11 +329,11 @@ public class ConfigurationHandler {
             }
         } finally {
             String featureId = feature.getFeatureId();
-            this.recordValuation(featureId, null, identityId, resultDict.getString("evaluated_segment_id"));
+            this.recordValuation(featureId, null, entityId, resultDict.getString("evaluated_segment_id"));
         }
     }
 
-    private JSONObject evaluateRules(Map<Integer, SegmentRules> rulesMap, JSONObject identityAttributes, Feature feature, Property property ) {
+    private JSONObject evaluateRules(Map<Integer, SegmentRules> rulesMap, JSONObject entityAttributes, Feature feature, Property property ) {
 
         JSONObject resultDict = new JSONObject();
         resultDict.put("evaluated_segment_id", ConfigConstants.DEFAULT_SEGMENT_ID);
@@ -349,7 +349,7 @@ public class ConfigurationHandler {
                         JSONArray segments = rule.getJSONArray("segments");
                         for (int innerLevel = 0; innerLevel < segments.length(); innerLevel++) {
                             String segmentKey = segments.getString(innerLevel);
-                            if (this.evaluateSegment(segmentKey, identityAttributes)) {
+                            if (this.evaluateSegment(segmentKey, entityAttributes)) {
                                 resultDict.put("evaluated_segment_id", segmentKey);
                                 if (segmentRule.getValue().equals("$default")) {
                                     if (feature != null) {
@@ -377,11 +377,11 @@ public class ConfigurationHandler {
         return resultDict;
     }
 
-    private Boolean evaluateSegment(String segmentKey, JSONObject identityAttributes) {
+    private Boolean evaluateSegment(String segmentKey, JSONObject entityAttributes) {
 
         if (this.segmentMap.containsKey(segmentKey)) {
             Segment segment = this.segmentMap.get(segmentKey);
-            return segment.evaluateRule(identityAttributes);
+            return segment.evaluateRule(entityAttributes);
         }
         return false;
 

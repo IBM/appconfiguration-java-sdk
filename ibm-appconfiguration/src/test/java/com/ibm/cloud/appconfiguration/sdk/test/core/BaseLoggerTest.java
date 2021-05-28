@@ -14,19 +14,29 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk;
+package com.ibm.cloud.appconfiguration.sdk.test.core;
 
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 public class BaseLoggerTest {
 
     @Test public void testSetDebugMethod() {
+        BaseLogger.setDebug(false);
         assertFalse(BaseLogger.isDebug(), "Logger isDebug should return 'false'");
         BaseLogger.setDebug(true);
         assertTrue(BaseLogger.isDebug(), "Logger isDebug should return 'true'");
         BaseLogger.setDebug(false);
         assertFalse(BaseLogger.isDebug(), "Logger isDebug should return 'false'");
+
+        BaseLogger.setDebug(true);
+        BaseLogger.error("Error message test");
+        BaseLogger.info("Info message test");
+        BaseLogger.warning("Warning message test");
+        BaseLogger.debug("Debug message test");
+        BaseLogger.success("Success message test");
+
     }
 }

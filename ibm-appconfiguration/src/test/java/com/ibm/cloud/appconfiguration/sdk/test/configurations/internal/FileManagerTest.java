@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk;
+package com.ibm.cloud.appconfiguration.sdk.test.configurations.internal;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;

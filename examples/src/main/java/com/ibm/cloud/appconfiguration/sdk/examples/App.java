@@ -67,11 +67,11 @@ public class App {
 
         Property property = appConfiguration.getProperty("propertyId");
 
-        JSONObject identityAttributes = new JSONObject();
-        identityAttributes.put("city", "Bangalore");
-        identityAttributes.put("country", "India");
-        String value = (String) feature.getCurrentValue("pvrxe3", identityAttributes);
-        Integer propertyValue = (Integer) property.getCurrentValue("pvrxe3", identityAttributes);
+        JSONObject entityAttributes = new JSONObject();
+        entityAttributes.put("city", "Bangalore");
+        entityAttributes.put("country", "India");
+        String value = (String) feature.getCurrentValue("pvrxe3", entityAttributes);
+        Integer propertyValue = (Integer) property.getCurrentValue("pvrxe3", entityAttributes);
 
 
         byte[] notFoundContent = ("<h1>Hi Feature value is: " + value + ", Property value is: " + propertyvalue + "</h1> ").getBytes();

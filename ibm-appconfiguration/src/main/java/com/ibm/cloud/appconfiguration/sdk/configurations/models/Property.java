@@ -65,15 +65,15 @@ public class Property {
         return segmentRules;
     }
 
-    public Object getCurrentValue(String identityId, JSONObject identityAttributes) {
+    public Object getCurrentValue(String entityId, JSONObject entityAttributes) {
 
-        if (!Validators.validateString(identityId)) {
+        if (!Validators.validateString(entityId)) {
             BaseLogger.error("A valid id should be passed for this method.");
             return null;
         }
 
         ConfigurationHandler configurationHandler = ConfigurationHandler.getInstance();
-        return configurationHandler.propertyEvaluation(this, identityId, identityAttributes);
+        return configurationHandler.propertyEvaluation(this, entityId, entityAttributes);
     }
 
 }

@@ -49,12 +49,12 @@ public class Segment {
         return segmentId;
     }
 
-    public Boolean evaluateRule(JSONObject identityAttributes) {
+    public Boolean evaluateRule(JSONObject entityAttributes) {
 
         for (int index = 0; index < this.rules.length(); index++) {
             try {
                 Rule rule = new Rule(this.rules.getJSONObject(index));
-                if (!rule.evaluateRule(identityAttributes)) {
+                if (!rule.evaluateRule(entityAttributes)) {
                     return false;
                 }
             } catch (Exception e) {
