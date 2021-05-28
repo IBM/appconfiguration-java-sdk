@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk;
+package com.ibm.cloud.appconfiguration.sdk.test.configurations.models;
 
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.Segment;
 import org.json.JSONArray;
@@ -68,10 +68,26 @@ public class SegmentTest {
             clientAttributes.put("radius",100);
             clientAttributes.put("cityRadius",35);
             assertTrue(sut.evaluateRule(clientAttributes));
+
+            clientAttributes.put("radius",101);
+            clientAttributes.put("cityRadius",35);
+            assertFalse(sut.evaluateRule(clientAttributes));
+
+            assertEquals(sut.getName(),"RegionalUser" );
+            assertEquals(sut.getSegmentId(),"kdu77n4s" );
+            assertEquals(sut.getRules().length(),2 );
         } catch (Exception e) {
             System.out.println(e);
             assertFalse(true);
         }
 
+    }
+
+    @Test
+    public void testSegmentException() {
+        this.sut = new Segment(new JSONObject());
+        assertNull(this.sut.getName());
+        assertNull(this.sut.getRules());
+        assertNull(this.sut.getSegmentId());
     }
 }

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk;
+package com.ibm.cloud.appconfiguration.sdk.test.configurations.models;
 
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.SegmentRules;
 import org.json.JSONArray;
@@ -54,8 +54,16 @@ public class SegmentRulesTest {
         Integer order = this.sut.getOrder();
         assertEquals(order.longValue(), 1);
         assertEquals(this.sut.getValue(), "IBM user");
-        assertEquals(this.sut.getValue(), "IBM user");
         assertEquals(this.sut.getRules().length(), 1);
 
     }
+
+    @Test
+    public void testSegmentRulesException() {
+        this.sut = new SegmentRules(new JSONObject());
+        assertNull(this.sut.getOrder());
+        assertNull(this.sut.getRules());
+        assertNull(this.sut.getValue());
+    }
+
 }

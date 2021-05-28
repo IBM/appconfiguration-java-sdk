@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk;
+package com.ibm.cloud.appconfiguration.sdk.test.configurations.models;
 
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationType;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Property;
@@ -23,6 +23,7 @@ import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class PropertyTest {
 
@@ -68,5 +69,13 @@ public class PropertyTest {
         assertEquals(sut.getPropertyName(), "defaultProperty");
         assertEquals(sut.getPropertyId(), "defaultproperty");
         assertEquals(sut.getCurrentValue("d",null),20);
+    }
+
+    @Test
+    public void testPropertyException() {
+        this.sut = new Property(new JSONObject());
+        assertNull(this.sut.getPropertyId());
+        assertNull(this.sut.getPropertyName());
+        assertNull(this.sut.getValue());
     }
 }

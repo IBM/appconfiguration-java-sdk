@@ -38,14 +38,14 @@ public class Rule {
         }
     }
 
-    public Boolean evaluateRule(JSONObject identityAttributes) {
+    public Boolean evaluateRule(JSONObject entityAttributes) {
 
         Boolean result = false;
         Object key;
 
-        if (identityAttributes.has(this.attributeName)) {
+        if (entityAttributes.has(this.attributeName)) {
             try {
-                key = identityAttributes.get(this.attributeName);
+                key = entityAttributes.get(this.attributeName);
             } catch (Exception e) {
                 AppConfigException.logException(this.getClass().getName(), "evaluateRule", e);
                 return result;

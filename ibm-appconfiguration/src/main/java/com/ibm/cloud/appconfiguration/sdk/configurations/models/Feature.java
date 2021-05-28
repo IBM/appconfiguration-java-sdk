@@ -80,14 +80,14 @@ public class Feature {
         return segmentRules;
     }
 
-    public Object getCurrentValue(String identityId, JSONObject identityAttributes) {
+    public Object getCurrentValue(String entityId, JSONObject entityAttributes) {
 
-        if (!Validators.validateString(identityId)) {
-            BaseLogger.error("A valid id should be passed for this method.");
+        if (!Validators.validateString(entityId)) {
+            BaseLogger.error("A valid entity id should be passed for this method.");
             return null;
         }
         ConfigurationHandler configurationHandler = ConfigurationHandler.getInstance();
-        return configurationHandler.featureEvaluation(this, identityId, identityAttributes);
+        return configurationHandler.featureEvaluation(this, entityId, entityAttributes);
 
     }
 }

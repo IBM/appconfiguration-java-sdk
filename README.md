@@ -25,20 +25,20 @@ Instrument your applications with App Configuration Java SDK, and use the App Co
 <dependency>
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>0.0.1</version>
+    <version>0.1.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```sh
-implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.0.1'
+implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.1.0'
 ```
 
 ## Import the SDK
 
 ```java
-import com.ibm.cloud.appconfiguration.sdk.AppConfiguration
+import com.ibm.cloud.appconfiguration.sdk.AppConfiguration;
 ```
 
 ## Initialize SDK
@@ -46,15 +46,16 @@ import com.ibm.cloud.appconfiguration.sdk.AppConfiguration
 ```java
 AppConfiguration appConfiguration = AppConfiguration.getInstance();
 
-String guid =  "guid"
+String region = "region";
+String guid = "guid";
 String apikey = "apikey";
 
-appConfiguration.init(AppConfiguration.REGION_US_SOUTH, guid, apikey);
+appConfiguration.init(region, guid, apikey);
 
-String collectionId = "collectionId";
-String environmentId = "environmentId";
+String collectionId = "airlines-webapp";
+String environmentId = "dev";
 
-appConfiguration.setContext(collectionId, environmentId)
+appConfiguration.setContext(collectionId, environmentId);
 ```
 
 - region : Region name where the service instance is created. Use
@@ -73,8 +74,8 @@ You can also work offline with local configuration file and perform feature and 
 
 ```java
 
-String configurationFile = "custom/userJson.json";
-Boolean liveConfigUpdateEnabled = true;
+String configurationFile = "saflights/flights.json";
+Boolean liveConfigUpdateEnabled = false;
 
 appConfiguration.setContext(collectionId, environmentId, configurationFile, liveConfigUpdateEnabled);
 
@@ -82,12 +83,15 @@ appConfiguration.setContext(collectionId, environmentId, configurationFile, live
 - configurationFile : Path to the JSON file which contains configuration details.
 - liveConfigUpdateEnabled : Set this value to false if the new configuration values shouldn't be fetched from the server. Make sure to provide a proper JSON file in the configurationFile path. By default, this value is enabled.
 
+### Permissions required by SDK
+Add write permission for `non-root` users to `appconfiguration.json` file which is used as cache in AppConfiguration SDK.
+
 ## Get single feature
 
 ```java
-Feature feature = appConfiguration.getFeature("feature_id");
+Feature feature = appConfiguration.getFeature("online-check-in");
 
-if (feature) {
+if (feature != null) {
     System.out.println("Feature Name : " + feature.getFeatureName());
     System.out.println("Feature Id : " + feature.getFeatureId());
     System.out.println("Feature Type : " + feature.getFeatureDataType());
@@ -103,25 +107,26 @@ HashMap<String, Feature> features = appConfiguration.getFeatures();
 
 ## Evaluate a feature 
 
-You can use the feature.getCurrentValue(identityId, identityAttributes) method to evaluate the value of the feature flag. 
+You can use the feature.getCurrentValue(entityId, entityAttributes) method to evaluate the value of the feature flag. 
 
-You should pass an unique identityId as the parameter to perform the feature flag evaluation. If the feature flag is configured with segments in the App Configuration service, you can set the attributes values as a JSONObject.
+You should pass an unique entityId as the parameter to perform the feature flag evaluation. If the feature flag is configured with segments in the App Configuration service, you can set the attributes values as a JSONObject.
 
 ```java
 
-JSONObject identityAttributes = new JSONObject();
-identityAttributes.put("city", "Bangalore");
-identityAttributes.put("country", "India");
+String entityId = "john_doe";
+JSONObject entityAttributes = new JSONObject();
+entityAttributes.put("city", "Bangalore");
+entityAttributes.put("country", "India");
 
-String value = (String) feature.getCurrentValue("identityId", identityAttributes);
+String value = (String) feature.getCurrentValue(entityId, entityAttributes);
 ```
 
 ## Get single property
 
 ```java
-Property property = appConfiguration.getProperty("property_id");
+Property property = appConfiguration.getProperty("check-in-charges");
 
-if (property) {
+if (property != null) {
     System.out.println("Property Name : " + property.getPropertyName());
     System.out.println("Property Id : " + property.getPropertyId());
     System.out.println("Property Type : " + property.getPropertyDataType());
@@ -131,22 +136,23 @@ if (property) {
 ## Get all properties 
 
 ```java
-HashMap<String, Property> property = appConfiguration.getProperties();
+HashMap<String, Property> properties = appConfiguration.getProperties();
 ```
 
 ## Evaluate a property 
 
-You can use the property.getCurrentValue(identityId, identityAttributes) method to evaluate the value of the property. 
+You can use the property.getCurrentValue(entityId, entityAttributes) method to evaluate the value of the property. 
 
-You should pass an unique identityId as the parameter to perform the property evaluation. If the property is configured with segments in the App Configuration service, you can set the attributes values as a JSONObject.
+You should pass an unique entityId as the parameter to perform the property evaluation. If the property is configured with segments in the App Configuration service, you can set the attributes values as a JSONObject.
 
 ```java
 
-JSONObject identityAttributes = new JSONObject();
-identityAttributes.put("city", "Bangalore");
-identityAttributes.put("country", "India");
+String entityId = "john_doe";
+JSONObject entityAttributes = new JSONObject();
+entityAttributes.put("city", "Bangalore");
+entityAttributes.put("country", "India");
 
-String value = (String) property.getCurrentValue("identityId", identityAttributes);
+String value = (String) property.getCurrentValue(entityId, entityAttributes);
 ```
 
 ## Set listener for feature or property data changes
@@ -165,13 +171,13 @@ appConfiguration.registerConfigurationUpdateListener(new ConfigurationUpdateList
 ## Fetch latest data 
 
 ```java
-appConfiguration.fetchConfigurations()
+appConfiguration.fetchConfigurations();
 ```
 
 ## Enable debugger (Optional)
 
 ```py
-appConfiguration.enableDebug(True)
+appConfiguration.enableDebug(True);
 ```
 
 ## License
