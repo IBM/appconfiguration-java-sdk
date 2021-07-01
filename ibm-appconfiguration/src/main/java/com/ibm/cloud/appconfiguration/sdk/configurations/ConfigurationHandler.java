@@ -17,18 +17,37 @@
 package com.ibm.cloud.appconfiguration.sdk.configurations;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ibm.cloud.appconfiguration.sdk.core.ServiceImpl;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Property;
-import com.ibm.cloud.appconfiguration.sdk.core.*;
-import com.ibm.cloud.appconfiguration.sdk.configurations.internal.*;
+import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
+import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
+import com.ibm.cloud.appconfiguration.sdk.core.CoreConstants;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigMessages;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Connectivity;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.FileManager;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Metering;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.RetryInterface;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.RetryHandler;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Socket;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.SocketHandler;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.URLBuilder;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.Segment;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.SegmentRules;
+import com.ibm.cloud.sdk.core.http.HttpHeaders;
+import com.ibm.cloud.sdk.core.http.Response;
+import com.ibm.cloud.sdk.core.security.IamAuthenticator;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Internal class to handle the configuration.
+ */
 public class ConfigurationHandler {
 
     private static ConfigurationHandler instance;
@@ -57,7 +76,10 @@ public class ConfigurationHandler {
     private Connectivity connectivity = null;
     private Boolean isNetWorkConnected = true;
 
-    public synchronized static ConfigurationHandler getInstance() {
+    /**
+     * @return instance of {@link ConfigurationHandler}
+     */
+    public static synchronized ConfigurationHandler getInstance() {
         if (instance == null) {
             instance = new ConfigurationHandler();
         }
@@ -67,11 +89,15 @@ public class ConfigurationHandler {
     private ConfigurationHandler() {
     }
 
-    public void init(String apikey,
-                     String guid,
-                     String region,
-                     String overrideServerHost) {
-
+    /**
+     * Initialize the configurations.
+     *
+     * @param apikey apikey of App Configuration service instance
+     * @param guid guid/instanceId of App Configuration service instance
+     * @param region region name of App Configuration service instance
+     * @param overrideServerHost server host. Use for testing purpose
+     */
+    public void init(String apikey, String guid, String region, String overrideServerHost) {
         this.apikey = apikey;
         this.guid = guid;
         this.region = region;
@@ -82,12 +108,18 @@ public class ConfigurationHandler {
         this.segmentMap = new HashMap<>();
     }
 
-    public void setContext(String collectionId, String environmentId, String configurationFile, Boolean liveConfigUpdateEnabled) {
+    /**
+     * @param collectionId collection id
+     * @param environmentId environment id
+     * @param configurationFile local configuration file path.
+     * @param liveConfigUpdateEnabled live configurations update from the server
+     */
+    public void setContext(String collectionId, String environmentId,
+        String configurationFile, Boolean liveConfigUpdateEnabled) {
         this.collectionId = collectionId;
         this.environmentId = environmentId;
         URLBuilder.initWithContext(collectionId, environmentId, region, guid, overrideServerHost);
         Metering.getInstance().setMeteringUrl(URLBuilder.getMeteringUrl(guid), apikey);
-
         this.liveConfigUpdateEnabled = liveConfigUpdateEnabled;
         this.configurationFile = configurationFile;
         this.isInitialized = true;
@@ -117,6 +149,8 @@ public class ConfigurationHandler {
         }
     }
 
+
+
     public void registerConfigurationUpdateListener(ConfigurationUpdateListener listener) {
 
         if (this.isInitialized) {
@@ -126,10 +160,21 @@ public class ConfigurationHandler {
         }
     }
 
+    /**
+     * Returns all properties.
+     *
+     * @return hashmap of all properties and their corresponding {@link Property} objects
+     */
     public HashMap<String, Property> getProperties() {
         return this.propertyMap;
     }
 
+    /**
+     * Returns the {@link Property} object with the details of the property specified by the {@code propertyId}.
+     *
+     * @param propertyId the Property Id
+     * @return property object
+     */
     public Property getProperty(String propertyId) {
         if (propertyMap.containsKey(propertyId)) {
             return propertyMap.get(propertyId);
@@ -144,10 +189,21 @@ public class ConfigurationHandler {
         return null;
     }
 
+    /**
+     * Returns all features.
+     *
+     * @return hashmap of all features and their corresponding {@link Feature} objects
+     */
     public HashMap<String, Feature> getFeatures() {
         return this.featureMap;
     }
 
+    /**
+     * Returns the {@link Feature} object with the details of the feature specified by the {@code featureId}.
+     *
+     * @param featureId the Feature Id
+     * @return feature object
+     */
     public Feature getFeature(String featureId) {
         if (featureMap.containsKey(featureId)) {
             return featureMap.get(featureId);
@@ -193,7 +249,6 @@ public class ConfigurationHandler {
 
     private void fetchConfigData() {
         if (this.isInitialized) {
-
             this.retryCount = 3;
             this.fetchFromApi();
             this.onSocketRetry = false;
@@ -202,17 +257,22 @@ public class ConfigurationHandler {
     }
 
     private void startWebSocket() {
+        try {
+            IamAuthenticator iamAuthenticator = ServiceImpl.getIamAuthenticator();
+            Map<String, String> headers = new HashMap<>();
+            headers.put(HttpHeaders.AUTHORIZATION,
+            iamAuthenticator.requestToken().getTokenType() + " " + iamAuthenticator.getToken());
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Authorization", this.apikey);
-
-        if (this.socket != null) {
-            this.socket.cancel();
-            this.socket = null;
+            if (this.socket != null) {
+                this.socket.cancel();
+                this.socket = null;
+            }
+            String socketUrl = URLBuilder.getWebSocketUrl();
+            this.socket = new Socket.Builder().url(socketUrl).headers(headers).listener(this.getSocketHandler()).build();
+            this.socket.connect();
+        } catch (Exception e) {
+            BaseLogger.error("web socket failed " + e.getLocalizedMessage());
         }
-        String socketUrl = URLBuilder.getWebSocketUrl();
-        this.socket = new Socket.Builder().url(socketUrl).headers(headers).listener(this.getSocketHandler()).build();
-        this.socket.connect();
     }
 
     private void getFileData(String filePath) {
@@ -233,10 +293,10 @@ public class ConfigurationHandler {
     private void loadConfigurations() {
         JSONObject data = FileManager.readFiles(null);
         if (!data.isEmpty()) {
-            if (data.has("features")) {
+            if (data.has(ConfigConstants.FEATURES)) {
                 this.featureMap = new HashMap<>();
                 try {
-                    JSONArray array = (JSONArray) data.get("features");
+                    JSONArray array = (JSONArray) data.get(ConfigConstants.FEATURES);
                     for (int i = 0; i < array.length(); i++) {
                         JSONObject featureJson = array.getJSONObject(i);
                         Feature feature = new Feature(featureJson);
@@ -247,10 +307,10 @@ public class ConfigurationHandler {
                 }
             }
 
-            if (data.has("properties")) {
+            if (data.has(ConfigConstants.PROPERTIES)) {
                 this.propertyMap = new HashMap<>();
                 try {
-                    JSONArray array = (JSONArray) data.get("properties");
+                    JSONArray array = (JSONArray) data.get(ConfigConstants.PROPERTIES);
                     for (int i = 0; i < array.length(); i++) {
                         JSONObject propertyJson = array.getJSONObject(i);
                         Property property = new Property(propertyJson);
@@ -261,10 +321,10 @@ public class ConfigurationHandler {
                 }
             }
 
-            if (data.has("segments")) {
+            if (data.has(ConfigConstants.SEGMENTS)) {
                 this.segmentMap = new HashMap<>();
                 try {
-                    JSONArray array = (JSONArray) data.get("segments");
+                    JSONArray array = (JSONArray) data.get(ConfigConstants.SEGMENTS);
                     for (int i = 0; i < array.length(); i++) {
                         JSONObject segmentJson = array.getJSONObject(i);
                         Segment segment = new Segment(segmentJson);
@@ -277,15 +337,32 @@ public class ConfigurationHandler {
         }
     }
 
-    public void recordValuation(String featureId,String propertyId, String entityId, String segmentId ) {
-        Metering.getInstance().addMetering(this.guid, this.environmentId, this.collectionId, entityId, segmentId, featureId, propertyId);
+    /**
+     * Records each of feature and property evaluations done by sending it to {@link Metering}.
+     *
+     * @param featureId feature id
+     * @param propertyId property id
+     * @param entityId entity id
+     * @param segmentId segment id
+     */
+    public void recordValuation(String featureId, String propertyId, String entityId, String segmentId) {
+
+        Metering.getInstance().addMetering(guid, environmentId,
+            collectionId, entityId, segmentId, featureId, propertyId);
     }
 
+    /**
+     * Property evaluation.
+     *
+     * @param property property object
+     * @param entityId entity id
+     * @param entityAttributes entity attributes JSON object
+     * @return property evaluated value
+     */
     public Object propertyEvaluation(Property property, String entityId, JSONObject entityAttributes) {
-
         JSONObject resultDict = new JSONObject();
-        resultDict.put("evaluated_segment_id", ConfigConstants.DEFAULT_SEGMENT_ID);
-        resultDict.put("value", new Object());
+        resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, ConfigConstants.DEFAULT_SEGMENT_ID);
+        resultDict.put(ConfigConstants.VALUE, new Object());
 
         try {
             if (entityAttributes == null || entityAttributes.isEmpty()) {
@@ -294,22 +371,31 @@ public class ConfigurationHandler {
             JSONArray segmentRules = property.getSegmentRules();
             if (segmentRules.length() > 0) {
                 Map<Integer, SegmentRules> rulesMap = this.parseRules(segmentRules);
-                resultDict = evaluateRules(rulesMap,entityAttributes, null, property);
-                return resultDict.get("value");
+                resultDict = evaluateRules(rulesMap, entityAttributes, null, property);
+                return resultDict.get(ConfigConstants.VALUE);
             } else {
                 return property.getValue();
             }
         } finally {
             String propertyId = property.getPropertyId();
-            this.recordValuation(null, propertyId, entityId, resultDict.getString("evaluated_segment_id"));
+            this.recordValuation(null, propertyId, entityId,
+                resultDict.getString(ConfigConstants.EVALUATED_SEGMENT_ID));
         }
     }
 
+    /**
+     * Feature evaluation.
+     *
+     * @param feature feature object
+     * @param entityId entity id
+     * @param entityAttributes entity attributes JSON object
+     * @return feature evaluated value
+     */
     public Object featureEvaluation(Feature feature, String entityId, JSONObject entityAttributes) {
 
         JSONObject resultDict = new JSONObject();
-        resultDict.put("evaluated_segment_id", ConfigConstants.DEFAULT_SEGMENT_ID);
-        resultDict.put("value", new Object());
+        resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, ConfigConstants.DEFAULT_SEGMENT_ID);
+        resultDict.put(ConfigConstants.VALUE, new Object());
 
         try {
             if (feature.isEnabled()) {
@@ -319,8 +405,8 @@ public class ConfigurationHandler {
                 JSONArray segmentRules = feature.getSegmentRules();
                 if (segmentRules.length() > 0) {
                     Map<Integer, SegmentRules> rulesMap = this.parseRules(segmentRules);
-                    resultDict = evaluateRules(rulesMap,entityAttributes, feature, null);
-                    return resultDict.get("value");
+                    resultDict = evaluateRules(rulesMap, entityAttributes, feature, null);
+                    return resultDict.get(ConfigConstants.VALUE);
                 } else {
                     return feature.getEnabledValue();
                 }
@@ -329,15 +415,17 @@ public class ConfigurationHandler {
             }
         } finally {
             String featureId = feature.getFeatureId();
-            this.recordValuation(featureId, null, entityId, resultDict.getString("evaluated_segment_id"));
+            this.recordValuation(featureId, null, entityId,
+                resultDict.getString(ConfigConstants.EVALUATED_SEGMENT_ID));
         }
     }
 
-    private JSONObject evaluateRules(Map<Integer, SegmentRules> rulesMap, JSONObject entityAttributes, Feature feature, Property property ) {
+    private JSONObject evaluateRules(Map<Integer, SegmentRules> rulesMap, JSONObject entityAttributes,
+                                    Feature feature, Property property) {
 
         JSONObject resultDict = new JSONObject();
-        resultDict.put("evaluated_segment_id", ConfigConstants.DEFAULT_SEGMENT_ID);
-        resultDict.put("value", new Object());
+        resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, ConfigConstants.DEFAULT_SEGMENT_ID);
+        resultDict.put(ConfigConstants.VALUE, new Object());
 
         try {
             for (int i = 1; i <= rulesMap.size(); i++) {
@@ -346,19 +434,19 @@ public class ConfigurationHandler {
                 if (segmentRule != null) {
                     for (int level = 0; level < segmentRule.getRules().length(); level++) {
                         JSONObject rule = segmentRule.getRules().getJSONObject(level);
-                        JSONArray segments = rule.getJSONArray("segments");
+                        JSONArray segments = rule.getJSONArray(ConfigConstants.SEGMENTS);
                         for (int innerLevel = 0; innerLevel < segments.length(); innerLevel++) {
                             String segmentKey = segments.getString(innerLevel);
                             if (this.evaluateSegment(segmentKey, entityAttributes)) {
-                                resultDict.put("evaluated_segment_id", segmentKey);
+                                resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, segmentKey);
                                 if (segmentRule.getValue().equals("$default")) {
                                     if (feature != null) {
-                                        resultDict.put("value", feature.getEnabledValue());
+                                        resultDict.put(ConfigConstants.VALUE, feature.getEnabledValue());
                                     } else {
-                                        resultDict.put("value", property.getValue());
+                                        resultDict.put(ConfigConstants.VALUE, property.getValue());
                                     }
                                 } else {
-                                    resultDict.put("value", segmentRule.getValue());
+                                    resultDict.put(ConfigConstants.VALUE, segmentRule.getValue());
                                 }
                                 return resultDict;
                             }
@@ -370,9 +458,9 @@ public class ConfigurationHandler {
             AppConfigException.logException(this.getClass().getName(), "RuleEvaluation", e);
         }
         if (feature != null) {
-            resultDict.put("value", feature.getEnabledValue());
+            resultDict.put(ConfigConstants.VALUE, feature.getEnabledValue());
         } else {
-            resultDict.put("value", property.getValue());
+            resultDict.put(ConfigConstants.VALUE, property.getValue());
         }
         return resultDict;
     }
@@ -417,33 +505,24 @@ public class ConfigurationHandler {
 
     private void fetchFromApi() {
         if (this.isInitialized) {
-
             String url = URLBuilder.getConfigUrl();
             this.retryCount -= 1;
-            Map<String, String> headers = new HashMap<>();
-            headers.put("Authorization", this.apikey);
-            headers.put("Content-Type", "application/json");
-
-            BaseRequest baseRequest = new BaseRequest.Builder().url(url).method(RequestTypes.GET).headers(headers).build();
-            baseRequest.execute(new AppConfigurationResponseListener() {
-                @Override
-                public void onSuccess(Integer statusCode, String responseBody) {
-                    if (statusCode >= CoreConstants.REQUEST_SUCCESS_200 && statusCode <= CoreConstants.REQUEST_SUCCESS_299) {
-                        try {
-                            if (configRetry != null) {
-                                configRetry.cancel();
-                                configRetry = null;
-                            }
-                            HashMap<String, Object> map = new ObjectMapper().readValue(responseBody, HashMap.class);
-                            writeServerFile(map);
-                        } catch (Exception e) {
-                            AppConfigException.logException(this.getClass().getName(), "fetchFromApi", e);
+            try {
+                Response response = ServiceImpl.getInstance(apikey, overrideServerHost).getConfig(url);
+                if (response.getStatusCode() >= CoreConstants.REQUEST_SUCCESS_200
+                && response.getStatusCode() <= CoreConstants.REQUEST_SUCCESS_299) {
+                    try {
+                        if (configRetry != null) {
+                            configRetry.cancel();
+                            configRetry = null;
                         }
+                        HashMap<String, Object> map = new ObjectMapper().readValue((String) response.getResult(),
+                        HashMap.class);
+                        writeServerFile(map);
+                    } catch (Exception e) {
+                        AppConfigException.logException(this.getClass().getName(), "fetchFromApi", e);
                     }
-                }
-
-                @Override
-                public void onFailure(Integer statusCode, String responseBody) {
+                } else {
                     BaseLogger.error(ConfigMessages.CONFIG_API_ERROR);
                     if (retryCount > 0) {
                         fetchFromApi();
@@ -452,7 +531,9 @@ public class ConfigurationHandler {
                         startConfigRetryTimer();
                     }
                 }
-            });
+            } catch (Exception e) {
+                BaseLogger.error("Response Object is " + e.getLocalizedMessage());
+            }
         } else {
             BaseLogger.debug(ConfigMessages.CONFIG_HANDLER_INIT_ERROR);
         }

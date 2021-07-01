@@ -5,28 +5,18 @@
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
- *      http://www.apache.org/licenses/LICENSE-2.0
+ * http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
+ * This package contains all public methods and classes of the SDK
  */
 
-package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
-
-public final class Validators {
-
-    private Validators() { }
-
-    /**
-     * Validate a string.
-     *
-     * @param value a string
-     * @return {@code true} if given value is string. Else return {@code false}
-     */
-    public static Boolean validateString(String value) {
-        return !(value == null || value.isEmpty() || value == "");
-    }
-}
+/**
+ * This package contains all public methods and classes of the SDK.
+ */
+package com.ibm.cloud.appconfiguration.sdk;

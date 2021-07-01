@@ -17,7 +17,12 @@
 package com.ibm.cloud.appconfiguration.sdk.test.configurations.internal;
 
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Metering;
+import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class MeteringTest {
@@ -39,6 +44,16 @@ public class MeteringTest {
 
         assertEquals(3, metering.sendMetering().size());
 
-        metering.setMeteringUrl("test_url", "test_apikey");
+        for (int i=0; i<25; i++) {
+            metering.addMetering("guid"+i,"environment_id"+i, "collection_id"+i,"id_"+i,"segment_id"+i,"feature_id"+i,
+                null);
+        }
+        assertEquals(25, metering.sendMetering().size());
+        List<JSONObject> jsonObjectList = new ArrayList<>();
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("usages", jsonObjectList);
+        jsonObject.put("collection_id", "");
+        jsonObject.put("environment_id", "");
+        metering.sendSplitMetering(jsonObject,0);
     }
 }

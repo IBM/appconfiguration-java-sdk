@@ -16,6 +16,7 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.models;
 
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
@@ -24,7 +25,7 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * Feature class
+ * Feature class.
  */
 public class Feature {
 
@@ -36,50 +37,95 @@ public class Feature {
     private Object disabledValue;
     private Object enabledValue;
 
+    /**
+     * @param featureData features JSON object that contains all the features
+     */
     public Feature(JSONObject featureData) {
 
         try {
-            this.enabled = featureData.getBoolean("enabled");
-            this.name = featureData.getString("name");
-            this.featureId = featureData.getString("feature_id");
-            this.segmentRules = featureData.getJSONArray("segment_rules");
-            this.type = ConfigurationType.valueOf(featureData.getString("type"));
-            this.disabledValue = featureData.get("disabled_value");
-            this.enabledValue = featureData.get("enabled_value");
+            this.enabled = featureData.getBoolean(ConfigConstants.ENABLED);
+            this.name = featureData.getString(ConfigConstants.NAME);
+            this.featureId = featureData.getString(ConfigConstants.FEATURE_ID);
+            this.segmentRules = featureData.getJSONArray(ConfigConstants.SEGMENT_RULES);
+            this.type = ConfigurationType.valueOf(featureData.getString(ConfigConstants.TYPE));
+            this.disabledValue = featureData.get(ConfigConstants.DISABLED_VALUE);
+            this.enabledValue = featureData.get(ConfigConstants.ENABLED_VALUE);
 
         } catch (Exception e) {
             AppConfigException.logException("Feature", "Constructor", e, new Object[] { "Invalid action in Feature class."});
         }
     }
 
+    /**
+     * Return the enabled status of the feature.
+     *
+     * @return {@code true} or {@code false}
+     */
     public Boolean isEnabled() {
         return this.enabled;
     }
 
+    /**
+     * Get the Feature name.
+     *
+     * @return the feature name
+     */
     public String getFeatureName() {
         return this.name;
     }
 
+    /**
+     * Get the Feature Id.
+     *
+     * @return the feature id
+     */
     public String getFeatureId() {
         return this.featureId;
     }
 
+    /**
+     * Get the enabled value of the feature.
+     *
+     * @return enabled value
+     */
     public Object getEnabledValue() {
         return enabledValue;
     }
 
+    /**
+     * Get the disabled value of the feature.
+     *
+     * @return disabled value
+     */
     public Object getDisabledValue() {
         return disabledValue;
     }
 
+    /**
+     * Get the feature data type.
+     *
+     * @return string named BOOLEAN/STRING/NUMERIC
+     */
     public ConfigurationType getFeatureDataType() {
         return type;
     }
 
+    /**
+     * Get the rules of the Segment targeted.
+     *
+     * @return segment rules
+     */
     public JSONArray getSegmentRules() {
         return segmentRules;
     }
 
+    /**
+     * Get the evaluated value of the feature.
+     *
+     * @param entityId id of the entity
+     * @param entityAttributes entity attributes JSON object
+     * @return evaluated value
+     */
     public Object getCurrentValue(String entityId, JSONObject entityAttributes) {
 
         if (!Validators.validateString(entityId)) {

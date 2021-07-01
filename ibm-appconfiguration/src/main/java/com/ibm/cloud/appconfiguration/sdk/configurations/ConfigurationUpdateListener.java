@@ -18,6 +18,6 @@ package com.ibm.cloud.appconfiguration.sdk.configurations;
 
 public interface ConfigurationUpdateListener {
 
-    // This method will be called when there is a change in the features
-    public void onConfigurationUpdate();
+    // This method will be called when there is a change in the configurations
+    void onConfigurationUpdate();
 }

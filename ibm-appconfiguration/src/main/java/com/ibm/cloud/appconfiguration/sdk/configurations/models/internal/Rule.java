@@ -20,12 +20,18 @@ import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+/**
+ * Defines the model of a rule defined for a segment in App Configuration service.
+ */
 public class Rule {
 
     public String attributeName;
     public String operator;
     public JSONArray values;
 
+    /**
+     * @param ruleJson JSON object containing rule information
+     */
     public Rule(JSONObject ruleJson) {
 
         try {
@@ -38,6 +44,13 @@ public class Rule {
         }
     }
 
+    /**
+     * Evaluates the the Rule. Returns {@code true} if evaluation is passed against respective operator.
+     * Else return {@code false}
+     *
+     * @param entityAttributes entity attributes JSON object
+     * @return {@code true} if evaluation is passed. {@code false} otherwise
+     */
     public Boolean evaluateRule(JSONObject entityAttributes) {
 
         Boolean result = false;
@@ -150,7 +163,7 @@ public class Rule {
         } catch (Exception e) {
             AppConfigException.logException(this.getClass().getName(), "numberConversion", e);
         }
-        return new Conversions(false, new Float(0));
+        return new Conversions(false, Float.valueOf(0));
 
     }
 
@@ -158,7 +171,7 @@ public class Rule {
         public Boolean isNumber;
         public Float value;
 
-        public Conversions(Boolean isNumber, Float value) {
+        Conversions(Boolean isNumber, Float value) {
             this.isNumber = isNumber;
             this.value = value;
         }

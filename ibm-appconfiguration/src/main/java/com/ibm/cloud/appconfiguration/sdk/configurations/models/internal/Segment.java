@@ -16,39 +16,62 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.models.internal;
 
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+/**
+ *  Defines the model of a segment defined in App Configuration service.
+ */
 public class Segment {
 
     String name;
     String segmentId;
     JSONArray rules;
 
+    /**
+     * @param segmentJson segments JSON object that contains all the segments
+     */
     public Segment(JSONObject segmentJson) {
         try {
-            this.name = segmentJson.getString("name");
-            this.segmentId = segmentJson.getString("segment_id");
-            this.rules = segmentJson.getJSONArray("rules");
+            this.name = segmentJson.getString(ConfigConstants.NAME);
+            this.segmentId = segmentJson.getString(ConfigConstants.SEGMENT_ID);
+            this.rules = segmentJson.getJSONArray(ConfigConstants.RULES);
 
         } catch (Exception e) {
-            AppConfigException.logException(this.getClass().getName(), "Segment.init", e, new Object[] {"Invalid action in Segment class. "});
+            AppConfigException.logException(this.getClass().getName(), "Segment.init", e,
+                                            new Object[] {"Invalid action in Segment class. "});
         }
     }
 
+    /**
+     * @return rules of the segment
+     */
     public JSONArray getRules() {
         return rules;
     }
 
+    /**
+     * @return segment name
+     */
     public String getName() {
         return name;
     }
 
+    /**
+     * @return segment id
+     */
     public String getSegmentId() {
         return segmentId;
     }
 
+    /**
+     * Evaluate the Segment rules.
+     *
+     * @param entityAttributes entity attributes JSON object
+     * @return {@code true} is evaluation is passed. {@code false} otherwise
+     */
     public Boolean evaluateRule(JSONObject entityAttributes) {
 
         for (int index = 0; index < this.rules.length(); index++) {
@@ -58,7 +81,8 @@ public class Segment {
                     return false;
                 }
             } catch (Exception e) {
-                AppConfigException.logException(this.getClass().getName(), "evaluateRule", e, new Object[] {"Invalid action in Segment class."});
+                AppConfigException.logException(this.getClass().getName(), "evaluateRule", e,
+                                                new Object[] {"Invalid action in Segment class."});
             }
         }
         return true;

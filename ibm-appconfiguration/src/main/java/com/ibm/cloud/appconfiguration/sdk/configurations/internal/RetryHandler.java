@@ -19,6 +19,9 @@ package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 import java.util.Timer;
 import java.util.TimerTask;
 
+/**
+ * Retry handling in case of failures.
+ */
 public class RetryHandler {
 
     private Timer retryTimer;
@@ -55,6 +58,4 @@ public class RetryHandler {
             this.retryTimer = null;
         }
     }
-
-
 }
