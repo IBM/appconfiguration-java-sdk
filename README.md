@@ -25,14 +25,14 @@ Instrument your applications with App Configuration Java SDK, and use the App Co
 <dependency>
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>0.1.0</version>
+    <version>0.1.1</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```sh
-implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.1.0'
+implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.1.1'
 ```
 
 ## Import the SDK
@@ -85,13 +85,12 @@ appConfiguration.setContext(collectionId, environmentId, configurationFile, live
 
 ### Permissions required by SDK
 Add write permission for `non-root` users to `appconfiguration.json` file which is used as cache in AppConfiguration SDK.
-
 ## Get single feature
 
 ```java
 Feature feature = appConfiguration.getFeature("online-check-in");
 
-if (feature != null) {
+if (feature) {
     System.out.println("Feature Name : " + feature.getFeatureName());
     System.out.println("Feature Id : " + feature.getFeatureId());
     System.out.println("Feature Type : " + feature.getFeatureDataType());
@@ -126,7 +125,7 @@ String value = (String) feature.getCurrentValue(entityId, entityAttributes);
 ```java
 Property property = appConfiguration.getProperty("check-in-charges");
 
-if (property != null) {
+if (property) {
     System.out.println("Property Name : " + property.getPropertyName());
     System.out.println("Property Id : " + property.getPropertyId());
     System.out.println("Property Type : " + property.getPropertyDataType());
@@ -136,7 +135,7 @@ if (property != null) {
 ## Get all properties 
 
 ```java
-HashMap<String, Property> properties = appConfiguration.getProperties();
+HashMap<String, Property> property = appConfiguration.getProperties();
 ```
 
 ## Evaluate a property 
@@ -182,4 +181,4 @@ appConfiguration.enableDebug(True);
 
 ## License
 
-This project is released under the Apache 2.0 license. The license's full text can be found in [LICENSE](https://github.com/IBM/appconfiguration-sdk-java/blob/master/LICENSE)
+This project is released under the Apache 2.0 license. The license's full text can be found in [LICENSE](https://github.com/IBM/appconfiguration-java-sdk/blob/master/LICENSE)

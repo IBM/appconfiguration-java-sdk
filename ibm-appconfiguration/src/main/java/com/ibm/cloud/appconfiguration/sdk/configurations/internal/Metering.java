@@ -16,16 +16,23 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
-import com.ibm.cloud.appconfiguration.sdk.core.*;
+import com.ibm.cloud.appconfiguration.sdk.core.ServiceImpl;
+import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
+import com.ibm.cloud.appconfiguration.sdk.core.CoreConstants;
+
+import com.ibm.cloud.sdk.core.http.Response;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
-import java.time.Instant;
-import java.util.Arrays;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+import static com.ibm.cloud.appconfiguration.sdk.AppConfiguration.overrideServerHost;
+
+/**
+ * Class consisting of methods that stores the feature and property evaluations metrics and send the metrics
+ * to App Configuration server in intervals.
+ */
 public class Metering {
 
     private static Metering instance;
@@ -33,12 +40,17 @@ public class Metering {
     private String meteringUrl = null;
     private String apikey = null;
 
-    ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> meteringFeatureData =
+    ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String,
+        ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> meteringFeatureData =
             new ConcurrentHashMap();
-    ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> meteringPropertyData =
+    ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String,
+        ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> meteringPropertyData =
             new ConcurrentHashMap();
 
-    public synchronized static Metering getInstance() {
+    /**
+     * @return instance of {@link Metering}
+     */
+    public static synchronized Metering getInstance() {
         if (instance == null) {
             instance = new Metering();
         }
@@ -54,20 +66,38 @@ public class Metering {
         }, sendInterval);
     }
 
+    /**
+     * Sets the URL to which metering metrics is to be sent.
+     * @param url url
+     * @param apikey apikey of App Configuration service instance
+     */
     public void setMeteringUrl(String url, String apikey) {
         this.meteringUrl = url;
         this.apikey = apikey;
     }
 
-    public synchronized void addMetering(String guid, String environmentId, String collectionId, String entityId, String segmentId, String featureId, String propertyId) {
-
+    /**
+     * Stores the feature and property evaluation metrics into hashmaps.
+     *
+     * @param guid guid of App Configuration service instance
+     * @param environmentId environment id of App Configuration service instance
+     * @param collectionId collection id
+     * @param entityId entity id
+     * @param segmentId segment id
+     * @param featureId feature id
+     * @param propertyId property id
+     */
+    public synchronized void addMetering(String guid, String environmentId, String collectionId, String entityId,
+                                        String segmentId, String featureId, String propertyId) {
         Boolean hasData = false;
         HashMap<String, Object> featureJson = new HashMap();
-        featureJson.put("count", 1);
-        Instant currentDate = Instant.now();
-        featureJson.put("evaluation_time", currentDate);
+        featureJson.put(ConfigConstants.COUNT, 1);
+        String currentDateTime = ServiceImpl.getCurrentDateTime();
+        featureJson.put(ConfigConstants.EVALUATION_TIME, currentDateTime);
 
-        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> meteringData = featureId != null ? this.meteringFeatureData : this.meteringPropertyData;
+        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String,
+            ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> meteringData
+                = featureId != null ? this.meteringFeatureData : this.meteringPropertyData;
         String modifyKey = featureId != null ? featureId : propertyId;
 
         if (meteringData.containsKey(guid)) {
@@ -76,12 +106,17 @@ public class Metering {
 
                 if (meteringData.get(guid).get(environmentId).containsKey(collectionId)) {
                     if (meteringData.get(guid).get(environmentId).get(collectionId).containsKey(modifyKey)) {
-                        if (meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).containsKey(entityId)) {
-                            if (meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).get(entityId).containsKey(segmentId)) {
+                        if (meteringData.get(guid).get(environmentId).get(collectionId)
+                            .get(modifyKey).containsKey(entityId)) {
+                            if (meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).
+                                get(entityId).containsKey(segmentId)) {
                                 hasData = true;
-                                meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).get(entityId).get(segmentId).put("evaluation_time", currentDate);
-                                int count = (int) meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).get(entityId).get(segmentId).get("count");
-                                meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).get(entityId).get(segmentId).put("count", count + 1);
+                                meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).
+                                    get(entityId).get(segmentId).put(ConfigConstants.EVALUATION_TIME, currentDateTime);
+                                int count = (int) meteringData.get(guid).get(environmentId).get(collectionId).
+                                            get(modifyKey).get(entityId).get(segmentId).get(ConfigConstants.COUNT);
+                                meteringData.get(guid).get(environmentId).get(collectionId).get(modifyKey).
+                                    get(entityId).get(segmentId).put(ConfigConstants.COUNT, count + 1);
                             }
                         } else {
                             ConcurrentHashMap<String, HashMap<String, Object>> segmentIdMap = new ConcurrentHashMap();
@@ -121,7 +156,8 @@ public class Metering {
             ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>> entityIdMap = new ConcurrentHashMap();
             ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>> featureIdMap = new ConcurrentHashMap();
             ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>> collectionIdMap = new ConcurrentHashMap();
-            ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>> environmentIdMap = new ConcurrentHashMap();
+            ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String,
+                ConcurrentHashMap<String, HashMap<String, Object>>>>>> environmentIdMap = new ConcurrentHashMap();
             segmentIdMap.put(segmentId, new HashMap());
             entityIdMap.put(entityId, segmentIdMap);
             featureIdMap.put(modifyKey, entityIdMap);
@@ -134,8 +170,8 @@ public class Metering {
         }
     }
 
-    private synchronized void buildRequestBody(ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> sendMeteringData, HashMap<String, JSONArray> result, String key) {
-
+    private synchronized void buildRequestBody(ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String,
+        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> sendMeteringData, HashMap<String, JSONArray> result, String key) {
         sendMeteringData.forEach((guid, guidMap) -> {
 
             if (!result.containsKey(guid)) {
@@ -144,20 +180,21 @@ public class Metering {
             guidMap.forEach((environmentId, environmentMap) -> {
                 environmentMap.forEach((collectionId, collectionMap) -> {
                     JSONObject collections = new JSONObject();
-                    collections.put("collection_id", collectionId);
-                    collections.put("environment_id", environmentId);
-                    collections.put("usages", new JSONArray());
+                    collections.put(ConfigConstants.COLLECTION_ID, collectionId);
+                    collections.put(ConfigConstants.ENVIRONMENT_ID, environmentId);
+                    collections.put(ConfigConstants.USAGES, new JSONArray());
 
                     collectionMap.forEach((featureId, featureIdMap) -> {
                         featureIdMap.forEach((entityId, entityMap) -> {
                             entityMap.forEach((segmentId, segmentIdMap) -> {
                                 JSONObject usages = new JSONObject();
                                 usages.put(key, featureId);
-                                usages.put("entity_id", entityId);
-                                usages.put("segment_id", segmentId == "$$null$$" ? JSONObject.NULL : segmentId);
-                                usages.put("evaluation_time", segmentIdMap.get("evaluation_time"));
-                                usages.put("count", segmentIdMap.get("count"));
-                                collections.getJSONArray("usages").put(usages);
+                                usages.put(ConfigConstants.ENTITY_ID, entityId);
+                                usages.put(ConfigConstants.SEGMENT_ID,
+                                    segmentId == ConfigConstants.DEFAULT_SEGMENT_ID ? JSONObject.NULL : segmentId);
+                                usages.put(ConfigConstants.EVALUATION_TIME, segmentIdMap.get(ConfigConstants.EVALUATION_TIME));
+                                usages.put(ConfigConstants.COUNT, segmentIdMap.get(ConfigConstants.COUNT));
+                                collections.getJSONArray(ConfigConstants.USAGES).put(usages);
                             });
                         });
                     });
@@ -168,12 +205,16 @@ public class Metering {
         });
     }
 
+    /**
+     * Sends the evaluation metrics data to App Configuration billing server.
+     *
+     * @return JSON data constructed out of hashmaps
+     */
     public synchronized HashMap sendMetering() {
-
-        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> sendFeatureData =
-                this.meteringFeatureData;
-        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> sendPropertyData =
-                this.meteringPropertyData;
+        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String,
+            ConcurrentHashMap<String, ConcurrentHashMap<String, HashMap<String, Object>>>>>>> sendFeatureData = this.meteringFeatureData;
+        ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String, ConcurrentHashMap<String,
+            ConcurrentHashMap<String, HashMap<String, Object>>>>>>> sendPropertyData = this.meteringPropertyData;
 
         this.meteringFeatureData = new ConcurrentHashMap();
         this.meteringPropertyData = new ConcurrentHashMap();
@@ -185,69 +226,61 @@ public class Metering {
         HashMap<String, JSONArray> result = new HashMap();
 
         if (sendFeatureData.size() > 0) {
-            this.buildRequestBody(sendFeatureData, result, "feature_id");
+            this.buildRequestBody(sendFeatureData, result, ConfigConstants.FEATURE_ID);
         }
 
         if (sendPropertyData.size() > 0) {
-            this.buildRequestBody(sendPropertyData, result, "property_id");
+            this.buildRequestBody(sendPropertyData, result, ConfigConstants.PROPERTY_ID);
         }
-
         result.forEach((guid, dataArray) -> {
             dataArray.forEach((json) -> {
-                int count = ((JSONObject) json).getJSONArray("usages").length();
+                int count = ((JSONObject) json).getJSONArray(ConfigConstants.USAGES).length();
                 if (count > 25) {
-                    this.sendSplitMetering(guid, (JSONObject) json, count);
+                    this.sendSplitMetering((JSONObject) json, count);
                 } else {
-                    this.sendToServer(guid, (JSONObject) json);
+                    this.sendToServer((JSONObject) json);
                 }
             });
         });
-
         return result;
     }
 
-    public void sendSplitMetering(String guid, JSONObject data, int count) {
-
+    public void sendSplitMetering(JSONObject data, int count) {
         int lim = 0;
 
-        JSONArray subUsagesArray = data.getJSONArray("usages");
+        JSONArray subUsagesArray = data.getJSONArray(ConfigConstants.USAGES);
 
         while (lim <= count) {
-            int endIndex = lim+ConfigConstants.DEFAULT_USAGE_LIMIT >= count ? count : lim+ConfigConstants.DEFAULT_USAGE_LIMIT;
+            int endIndex = lim + ConfigConstants.DEFAULT_USAGE_LIMIT >= count ? count
+                : lim + ConfigConstants.DEFAULT_USAGE_LIMIT;
             JSONObject collectionsMap = new JSONObject();
-            collectionsMap.put("collection_id", data.getString("collection_id"));
-            collectionsMap.put("environment_id", data.getString("environment_id"));
+            collectionsMap.put(ConfigConstants.COLLECTION_ID, data.getString(ConfigConstants.COLLECTION_ID));
+            collectionsMap.put(ConfigConstants.ENVIRONMENT_ID, data.getString(ConfigConstants.ENVIRONMENT_ID));
             JSONArray usagesArray = new JSONArray();
             for (int i = lim; i < endIndex; i++) {
                 usagesArray.put(subUsagesArray.get(i));
             }
-            collectionsMap.put("usages", usagesArray);
-            this.sendToServer(guid, collectionsMap);
+            collectionsMap.put(ConfigConstants.USAGES, usagesArray);
+            this.sendToServer(collectionsMap);
             lim += ConfigConstants.DEFAULT_USAGE_LIMIT;
         }
     }
-    private void sendToServer(String guid, JSONObject data ) {
 
-        Map<String, String> headers = new HashMap<>();
-        headers.put("Authorization", this.apikey);
-        BaseRequest baseRequest = new BaseRequest.Builder().url(URLBuilder.getMeteringUrl(guid)).method(RequestTypes.POST).body(data).headers(headers).build();
-
-        baseRequest.execute(new AppConfigurationResponseListener() {
-            @Override
-            public void onSuccess(Integer statusCode, String responseBody) {
-                if (statusCode >= CoreConstants.REQUEST_SUCCESS_200 && statusCode <= CoreConstants.REQUEST_SUCCESS_299) {
-                    BaseLogger.debug("Successfully pushed the data to metering");
-                } else {
-                    BaseLogger.error("Error while sending the metering data. Status code is : " + statusCode + ". Response body: " + responseBody);
-                }
+    private void sendToServer(JSONObject data) {
+        try {
+            Response response =
+                ServiceImpl.getInstance(this.apikey, overrideServerHost).postMetering(this.meteringUrl, data);
+            if (response.getStatusCode() >= CoreConstants.REQUEST_SUCCESS_200
+            && response.getStatusCode() <= CoreConstants.REQUEST_SUCCESS_299) {
+                BaseLogger.debug("Successfully pushed the data to metering");
+            } else {
+                BaseLogger.error("Error while sending the metering data. Status code is : " + response.getStatusCode()
+                + ". Response " + "body: " + response.getResult().toString());
+                BaseLogger.debug(response.getResult().toString());
             }
-
-            @Override
-            public void onFailure(Integer statusCode, String responseBody) {
-                BaseLogger.debug(responseBody);
-            }
-        });
-
+        } catch (Exception e) {
+            BaseLogger.error("Response object is " + e.getLocalizedMessage());
+        }
     }
 }
 

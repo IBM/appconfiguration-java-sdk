@@ -23,12 +23,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.net.Socket;
 
+/**
+ * Class consisting of various methods that handles the internet connectivity status of the SDK.
+ */
 public class Connectivity {
 
     private static Connectivity instance;
     private List<ConnectivityListener> listeners = new ArrayList<>();
 
-    public synchronized static Connectivity getInstance() {
+    public static synchronized Connectivity getInstance() {
         if (instance == null) {
             instance = new Connectivity();
             instance.start();
@@ -36,7 +39,7 @@ public class Connectivity {
         return instance;
     }
 
-    private Connectivity(){}
+    private Connectivity() { }
 
     public void addConnectivityListener(ConnectivityListener listener) {
         listeners.add(listener);
@@ -51,6 +54,9 @@ public class Connectivity {
         }, 30000);
     }
 
+    /**
+     * Check the internet connection by making ping to <a href="https://cloud.ibm.com">https://cloud.ibm.com</a>.
+     */
     public void checkConnection() {
         Boolean connected = false;
         Socket socket = new Socket();
@@ -59,12 +65,14 @@ public class Connectivity {
             socket.connect(address, 500);
             connected = socket.isConnected();
         } catch (Exception e) {
-            AppConfigException.logException(this.getClass().getName(), "checkConnection", e, new Object[] {"Exception in checking network connection."});
+            AppConfigException.logException(this.getClass().getName(), "checkConnection", e,
+                                            new Object[] {"Exception in checking network connection."});
         } finally {
             try {
                 socket.close();
             } catch (Exception e) {
-                AppConfigException.logException(this.getClass().getName(), "checkConnection", e, new Object[] {"Exception in closing network connection."});
+                AppConfigException.logException(this.getClass().getName(), "checkConnection", e,
+                                                new Object[] {"Exception in closing network connection."});
             }
         }
         if (connected) {

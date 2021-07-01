@@ -18,28 +18,31 @@ package com.ibm.cloud.appconfiguration.sdk.core;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 
 /**
- * Class for handling the sdk logging
+ * Class for handling the sdk logging.
  */
 public class BaseLogger {
 
     private static boolean isDebug = false;
-    private final static Logger LOGGER =
+    private static final Logger LOGGER =
             Logger.getLogger(CoreMessages.GLOBAL_LOGGER_NAME);
 
+    private BaseLogger() {
+
+    }
 
     private static String getTime() {
-        SimpleDateFormat formatter= new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+        SimpleDateFormat formatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         Date date = new Date(System.currentTimeMillis());
         return formatter.format(date);
     }
 
     /**
-     * Enable or disable the logging
-     * @param value - Boolean value for the debug logger.
+     * Enable or disable the logging.
+     *
+     * @param value boolean value for the debug logger
      */
     public static void setDebug(boolean value) {
         isDebug = value;
@@ -47,31 +50,35 @@ public class BaseLogger {
 
     /**
      * Method to check current status of debug logger.
-     * @return a boolean value.
+     *
+     * @return a boolean value
      */
     public static boolean isDebug() {
         return isDebug;
     }
 
     /**
-     * method to pass the info logger message.
-     * @param message - Message in string format.
+     * Method to pass the info logger message.
+     *
+     * @param message message in string format
      */
     public static void info(String message) {
-        LOGGER.info( getTime() + " " + message);
+        LOGGER.info(getTime() + " " + message);
     }
 
     /**
-     * method to pass the info error message.
-     * @param message - Message in string format.
+     * Method to pass the info error message.
+     *
+     * @param message message in string format
      */
     public static void error(String message) {
         LOGGER.severe(getTime() + " " + message);
     }
 
     /**
-     * method to pass the warning logger message.
-     * @param message - Message in string format.
+     * Method to pass the warning logger message.
+     *
+     * @param message message in string format
      */
     public static void warning(String message) {
         if (isDebug) {
@@ -80,8 +87,9 @@ public class BaseLogger {
     }
 
     /**
-     * method to pass the success logger message.
-     * @param message - Message in string format.
+     * Method to pass the success logger message.
+     *
+     * @param message message in string format
      */
     public static void success(String message) {
         if (isDebug) {
@@ -90,8 +98,9 @@ public class BaseLogger {
     }
 
     /**
-     * method to pass the debug logger message.
-     * @param message - Message in string format.
+     * Method to pass the debug logger message.
+     *
+     * @param message message in string format
      */
     public static void debug(String message) {
         if (isDebug) {

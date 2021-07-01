@@ -17,6 +17,8 @@
 package com.ibm.cloud.appconfiguration.sdk.test.configurations;
 
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
+import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationUpdateListener;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Property;
 import org.json.JSONObject;
@@ -26,7 +28,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class ConfigurationHandlerTest {
@@ -36,14 +37,22 @@ public class ConfigurationHandlerTest {
 
         ConfigurationHandler configurationHandler = ConfigurationHandler.getInstance();
         configurationHandler.loadData();
-        configurationHandler.init("apikey", "guid", "region", "");
-
+        configurationHandler.registerConfigurationUpdateListener(null);
         Path resourceDirectory = Paths.get("src","test","resources");
         String absolutePath = resourceDirectory.toFile().getAbsolutePath();
 
-        configurationHandler.setContext("collectionId", "environmentId", absolutePath + "/user.json",false);
+        configurationHandler.setContext(ConfigConstants.COLLECTION_ID, ConfigConstants.ENVIRONMENT_ID, absolutePath + "/user.json",
+        false);
         configurationHandler.loadData();
+        final Boolean[] onData = {false};
+        configurationHandler.registerConfigurationUpdateListener(new ConfigurationUpdateListener() {
+            @Override
+            public void onConfigurationUpdate() {
+                onData[0] = true;
+            }
+        });
         Thread.sleep(2500);
+
 
 
         String propertyJson = "{\"name\":\"numericProperty\",\"property_id\":\"numericproperty\",\"description\":\"testing prop\",\"value\":10,\"type\":\"NUMERIC\",\"tags\":\"test\",\"segment_rules\":[{\"rules\":[{\"segments\":[\"keuyclvf\"]}],\"value\":81,\"order\":1}],\"collections\":[{\"collection_id\":\"appcrash\"}]}";

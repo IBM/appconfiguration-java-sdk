@@ -38,7 +38,6 @@ public class PropertyTest {
             property.put("type",type.toString());
             property.put("value",value);
             property.put("segment_rules",new JSONArray());
-
         } catch (Exception e) {
             System.out.println(e);
         }

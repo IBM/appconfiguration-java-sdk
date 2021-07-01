@@ -35,8 +35,8 @@ public class AppConfigurationTest {
     public void testConfigurationHandler() throws InterruptedException {
 
         AppConfiguration appConfiguration = AppConfiguration.getInstance();
-        AppConfiguration.overrideServerHost = "overrideServerHost";
-        assertTrue(AppConfiguration.overrideServerHost == "overrideServerHost");
+        AppConfiguration.overrideServerHost = "http://overrideServerHost";
+        assertTrue(AppConfiguration.overrideServerHost == "http://overrideServerHost");
 
         appConfiguration.setContext("collectionId", "environmentId");
         appConfiguration.setContext("collectionId", "environmentId","",true);
@@ -48,11 +48,10 @@ public class AppConfigurationTest {
         appConfiguration.init("region","guid","");
         appConfiguration.init("region","guid","apikey");
 
-        appConfiguration.setContext("", "");
-        appConfiguration.setContext("collectionId", "environmentId");
-
-        appConfiguration.fetchConfigurations();
-
+        appConfiguration.setContext("", "envid");
+        appConfiguration.setContext("collection_id", "");
+        appConfiguration.setContext("collection_id", "env_id");
+        appConfiguration.setContext("collection_id", "env_id", "", false);
         final Boolean[] onData = {false};
         appConfiguration.registerConfigurationUpdateListener(new ConfigurationUpdateListener() {
             @Override
@@ -64,6 +63,9 @@ public class AppConfigurationTest {
 
         Path resourceDirectory = Paths.get("src","test","resources");
         String absolutePath = resourceDirectory.toFile().getAbsolutePath();
+        appConfiguration.setContext("collectionId", "environmentId", absolutePath + "/user.json",false);
+
+        appConfiguration.fetchConfigurations();
 
         appConfiguration.enableDebug(true);
         assertTrue(appConfiguration.getFeatures().size() >= 0);
@@ -75,12 +77,7 @@ public class AppConfigurationTest {
         assertNull(appConfiguration.getProperty("numericproperty1"));
         assertNull(appConfiguration.getFeature("defaultfeature2"));
 
-        appConfiguration.setContext("collectionId", "environmentId", absolutePath + "/user.json",false);
         appConfiguration.fetchConfigurations();
-
-
-        TimeUnit.SECONDS.sleep(3);
-        assertTrue(onData[0]);
 
         assertTrue(appConfiguration.getFeatures().size() == 3);
         Feature feature = appConfiguration.getFeature("defaultfeature");
@@ -88,13 +85,15 @@ public class AppConfigurationTest {
 
         assertTrue(idVal.equals("defaultfeature"));
         assertTrue(appConfiguration.getProperties().size() == 1);
-        Property property = appConfiguration.getProperty("numericproperty");
-        assertTrue(property.getPropertyId().equals("numericproperty"));
-
         JSONObject attributes = new JSONObject();
         attributes.put("email", "dev@tester.com");
+        Property property = appConfiguration.getProperty("numericproperty");
+        assertTrue(property.getPropertyId().equals("numericproperty"));
+        property.getCurrentValue("", attributes);
+
 
         assertEquals("Welcome",feature.getCurrentValue("pqvr", attributes));
         assertEquals(81,property.getCurrentValue("pqvr", attributes));
+
     }
 }

@@ -26,9 +26,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.HashMap;
 
+/**
+ * Class consisting of methods that perform all the file related operations.
+ */
 public class FileManager {
 
     private static final String fileName = "appconfiguration.json";
+
+    private FileManager() { }
 
     private static String getCacheUrl() {
         Path source = Paths.get(FileManager.class.getResource("/").getPath());
@@ -36,6 +41,12 @@ public class FileManager {
         return path;
     }
 
+    /**
+     * Write the given data to SDK defined file path.
+     *
+     * @param hashMapData the data to write
+     * @return boolean value that indicates file write operations is successful or not
+     */
     public static Boolean storeFile(HashMap hashMapData) {
         if (hashMapData.isEmpty() || hashMapData == null) {
             return false;
@@ -52,10 +63,17 @@ public class FileManager {
         }
         return true;
     }
+
+    /**
+     * Read the data from the given file path.
+     *
+     * @param filePath the path of the file
+     * @return the file data
+     */
     public static JSONObject readFiles(String filePath) {
 
         String path = filePath;
-        HashMap<?,?> data = new HashMap<>();
+        HashMap<?, ?> data = new HashMap<>();
         if (filePath == null) {
             path = FileManager.getCacheUrl();
         }

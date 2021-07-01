@@ -16,6 +16,9 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
+/**
+ * Class consisting of methods that constructs all the URL's required by the SDK.
+ */
 public class URLBuilder {
 
     private static final String wsUrl = "/wsfeature";
@@ -28,10 +31,20 @@ public class URLBuilder {
     private static String httpBase = "";
     private static String webSocketBase = "";
 
+    private URLBuilder() { }
 
-    public static void initWithContext(String collectionId, String environmentId, String region, String guid, String overrideServerHost) {
+    /**
+     * @param collectionId collection id
+     * @param environmentId environment id
+     * @param region region name of App Configuration service instance
+     * @param guid guid of App Configuration service instance
+     * @param overrideServerHost server host. Use for testing purpose
+     */
+    public static void initWithContext(String collectionId, String environmentId, String region,
+                                        String guid, String overrideServerHost) {
 
-        if (Validators.validateString(collectionId) && Validators.validateString(environmentId) && Validators.validateString(region) && Validators.validateString(guid)) {
+        if (Validators.validateString(collectionId) && Validators.validateString(environmentId)
+            && Validators.validateString(region) && Validators.validateString(guid)) {
 
             URLBuilder.region = region;
             URLBuilder.overrideServerHost = overrideServerHost;
@@ -46,22 +59,40 @@ public class URLBuilder {
                 httpBase += region;
                 httpBase += ConfigConstants.DEFAULT_BASE_URL;
                 webSocketBase += region;
-                webSocketBase += ConfigConstants.DEFAULT_BASE_URL;;
+                webSocketBase += ConfigConstants.DEFAULT_BASE_URL;
             }
 
-            httpBase += String.format("%s%s%s/collections/%s/%s?environment_id=%s", service, path, guid, collectionId, config, environmentId);
-            webSocketBase += String.format("%s%s?instance_id=%s&collection_id=%s&environment_id=%s", service, wsUrl, guid, collectionId, environmentId);
+            httpBase += String.format("%s%s%s/collections/%s/%s?environment_id=%s", service, path, guid,
+                                        collectionId, config, environmentId);
+            webSocketBase += String.format("%s%s?instance_id=%s&collection_id=%s&environment_id=%s", service,
+                                            wsUrl, guid, collectionId, environmentId);
         }
     }
 
+    /**
+     * Return the Configuration URL.
+     *
+     * @return configuration url
+     */
     public static String getConfigUrl() {
         return httpBase;
     }
 
+    /**
+     * Return the websocket URL.
+     *
+     * @return websocket url
+     */
     public static String getWebSocketUrl() {
         return webSocketBase;
     }
 
+    /**
+     * Return the mettering URL.
+     *
+     * @param guid guid of App Configuration service instance
+     * @return metering url
+     */
     public static String getMeteringUrl(String guid) {
         String base = ConfigConstants.DEFAULT_HTTP_TYPE;
         if (Validators.validateString(overrideServerHost)) {

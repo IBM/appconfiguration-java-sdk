@@ -16,35 +16,51 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.models.internal;
 
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+/**
+ * Defines the model of a segment rule defined in App Configuration service.
+ */
 public class SegmentRules {
 
     Integer order;
     Object value;
     JSONArray rules;
 
+    /**
+     * @param segmentRulesJson segment_rules JSON object that contains all the segment rules
+     */
     public SegmentRules(JSONObject segmentRulesJson) {
         try {
             this.order = segmentRulesJson.getInt("order");
-            this.value = segmentRulesJson.get("value");
-            this.rules = segmentRulesJson.getJSONArray("rules");
+            this.value = segmentRulesJson.get(ConfigConstants.VALUE);
+            this.rules = segmentRulesJson.getJSONArray(ConfigConstants.RULES);
 
         } catch (Exception e) {
             AppConfigException.logException(this.getClass().getName(), "SegmentRules.init", e, new Object[] {"Invalid action in SegmentRules class."});
         }
     }
 
+    /**
+     * @return the order of the rule in the segment_rules object
+     */
     public Integer getOrder() {
         return order;
     }
 
+    /**
+     * @return the value of the rule in segment_rules object
+     */
     public Object getValue() {
         return value;
     }
 
+    /**
+     * @return the rules array of the segment_rules object
+     */
     public JSONArray getRules() {
         return rules;
     }

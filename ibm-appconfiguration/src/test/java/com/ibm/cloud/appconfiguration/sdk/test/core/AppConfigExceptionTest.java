@@ -14,19 +14,13 @@
  * limitations under the License.
  */
 
-package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
+package com.ibm.cloud.appconfiguration.sdk.test.core;
 
-public final class Validators {
+import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
+import org.junit.jupiter.api.Test;
 
-    private Validators() { }
-
-    /**
-     * Validate a string.
-     *
-     * @param value a string
-     * @return {@code true} if given value is string. Else return {@code false}
-     */
-    public static Boolean validateString(String value) {
-        return !(value == null || value.isEmpty() || value == "");
+public class AppConfigExceptionTest {
+    @Test public void testAppConfigException() {
+        AppConfigException.logException("","", new Exception());
     }
 }

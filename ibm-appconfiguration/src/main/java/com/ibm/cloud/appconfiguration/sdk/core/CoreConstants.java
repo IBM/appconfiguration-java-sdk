@@ -16,14 +16,16 @@
 
 package com.ibm.cloud.appconfiguration.sdk.core;
 
+/**
+ * Class consisting of various member variables used as constants by the SDK.
+ */
 public class CoreConstants {
 
-    public final static Integer REQUEST_SUCCESS_200 = 200;
-    public final static Integer REQUEST_SUCCESS_299 = 299;
-    public final static Integer REQUEST_ERROR_AUTH = 401;
-    public final static Integer REQUEST_ERROR = 400;
-    public final static Integer REQUEST_ERROR_NOT_SUPPORTED = 405;
+    private CoreConstants() { }
 
-
-
+    public static final Integer REQUEST_SUCCESS_200 = 200;
+    public static final Integer REQUEST_SUCCESS_299 = 299;
+    public static final Integer REQUEST_ERROR_AUTH = 401;
+    public static final Integer REQUEST_ERROR = 400;
+    public static final Integer REQUEST_ERROR_NOT_SUPPORTED = 405;
 }

@@ -17,10 +17,17 @@
 
 package com.ibm.cloud.appconfiguration.sdk.core;
 
+/**
+ * Class consisting of various member variables used as logger messages by the SDK.
+ */
 public class CoreMessages {
 
-    public final static String REQUEST_TYPE_NOT_SUPPORTED = "The request is not allowed. Only GET and POST is allowed.";
-    public final static String REQUEST_CLIENT_INVALID = "The request is invalid.";
-    public final static String REQUEST_RESPONSE_ERROR = "Error while fetching the data from response.";
-    public final static String GLOBAL_LOGGER_NAME = "AppConfigurationLogger";
+    private CoreMessages() {
+
+    }
+
+    public static final String REQUEST_TYPE_NOT_SUPPORTED = "The request is not allowed. Only GET and POST is allowed.";
+    public static final String REQUEST_CLIENT_INVALID = "The request is invalid.";
+    public static final String REQUEST_RESPONSE_ERROR = "Error while fetching the data from response.";
+    public static final String GLOBAL_LOGGER_NAME = "AppConfigurationLogger";
 }

@@ -17,6 +17,7 @@
 package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
+import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
 import org.java_websocket.client.WebSocketClient;
 import org.java_websocket.drafts.Draft_6455;
 import org.java_websocket.handshake.ServerHandshake;
@@ -24,6 +25,9 @@ import org.java_websocket.handshake.ServerHandshake;
 import java.net.URI;
 import java.util.Map;
 
+/**
+ * Manage websocket events that are sent by App Configuration socket server.
+ */
 public class Socket extends WebSocketClient {
 
     SocketHandler listener;
@@ -46,13 +50,15 @@ public class Socket extends WebSocketClient {
     public void onMessage(String message) {
         if (!message.equals("test message")) {
             this.listener.onMessage(message);
+        } else {
+            BaseLogger.debug("Received Heart beat from web socket");
         }
     }
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        this.listener.onClose( "Connection closed by " + (remote ? "remote peer" : "us") + " Code: " + code + " Reason: "
-                + reason);
+        this.listener.onClose("Connection closed by " + (remote ? "remote peer" : "us") + " Code: " + code
+                                + " Reason: " + reason);
     }
 
     @Override
