@@ -25,14 +25,14 @@ Instrument your applications with App Configuration Java SDK, and use the App Co
 <dependency>
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>0.1.1</version>
+    <version>0.2.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```sh
-implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.1.1'
+implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.2.0'
 ```
 
 ## Import the SDK
@@ -153,6 +153,90 @@ entityAttributes.put("country", "India");
 
 String value = (String) property.getCurrentValue(entityId, entityAttributes);
 ```
+
+## Supported Data types
+
+App Configuration service allows to configure the feature flag and properties in the following data types : Boolean,
+Numeric, String. The String data type can be of the format of a TEXT string , JSON or YAML. The SDK processes each
+format accordingly as shown in the below table.
+<details><summary>View Table</summary>
+
+| **Feature or Property value**                                                                                      | **DataType** | **DataFormat** | **Type of data returned <br> by `GetCurrentValue()`** | **Example output**                                                   |
+| ------------------------------------------------------------------------------------------------------------------ | ------------ | -------------- | ----------------------------------------------------- | -------------------------------------------------------------------- |
+| `true`                                                                                                             | BOOLEAN      | not applicable | `java.lang.Boolean`                                                | `true`                                                               |
+| `25`                                                                                                               | NUMERIC      | not applicable | `java.lang.Integer`                                             | `25`                                                                 |
+| "a string text"                                                                                                    | STRING       | TEXT           | `java.lang.String`                                              | `a string text`                                                      |
+| <pre>{<br>  "firefox": {<br>    "name": "Firefox",<br>    "pref_url": "about:config"<br>  }<br>}</pre> | STRING       | JSON           | `org.json.JSONObject`                              | `{"firefox": {"name": "Firefox", "pref_url": "about:config"}}` |
+| <pre>men:<br>  - John Smith<br>  - Bill Jones<br>women:<br>  - Mary Smith<br>  - Susan Williams</pre>  | STRING       | YAML           | `java.lang.String`                              | `"men:\n - John Smith\n - Bill Jones\nwomen:\n - Mary Smith\n - Susan Williams"` |
+
+</details>
+
+<details><summary>Feature flag</summary>
+
+```java
+Feature feature = appConfiguration.getFeature("json-feature");
+if (feature != null) {
+    feature.getFeatureDataType();       // STRING
+    feature.getFeatureDataFormat();     // JSON
+    feature.getCurrentValue(entityId, entityAttributes); // JSONObject or JSONArray is returned
+}
+
+// Example Below
+// input json :- [{"role": "developer", "description": "do coding"},{"role": "tester", "description": "do testing"}]
+// expected output :- "do coding"
+
+JSONArray tar_val = (JSONArray) feature.get_current_value(entityId, entityAttributes);
+String expected_output = (String) ((JSONObject) tar_val.get(0)).get('description');
+
+// input json :- {"role": "tester", "description": "do testing"}
+// expected output :- "tester"
+
+JSONObject tar_val = (JSONObject) feature.get_current_value(entityId, entityAttributes);
+String expected_output = (String) tar_val.get('role');
+
+Feature feature = appConfiguration.getFeature("yaml-feature");
+if (feature != null) {
+    feature.getFeatureDataType();       // STRING
+    feature.getFeatureDataFormat();     // YAML
+    feature.getCurrentValue(entityId, entityAttributes); // Yaml String is returned
+}
+```
+
+</details>
+<details><summary>Property</summary>
+
+```java
+Property property = appConfiguration.getProperty("json-property");
+if (property != null) {
+    property.getPropertyDataType()     // STRING
+    property.getPropertyDataFormat()   // JSON
+    property.getCurrentValue(entityId, entityAttributes) // JSONObject or JSONArray is returned
+    
+}
+
+// Example Below
+// input json :- [{"role": "developer", "description": "do coding"},{"role": "tester", "description": "do testing"}]
+// expected output :- "do coding"
+
+JSONArray tar_val = (JSONArray) property.get_current_value(entityId, entityAttributes);
+String expected_output = (String) ((JSONObject) tar_val.get(0)).get('description');
+
+// input json :- {"role": "tester", "description": "do testing"}
+// expected output :- "tester"
+
+JSONObject tar_val = (JSONObject) property.get_current_value(entityId, entityAttributes);
+String expected_output = (String) tar_val.get('role');
+
+Property property = appConfiguration.getProperty("yaml-property");
+if (property != null) {
+    property.getPropertyDataType()     // STRING
+    property.getPropertyDataFormat()   // YAML
+    property.getCurrentValue(entityId, entityAttributes) // Yaml String is returned
+    
+}
+```
+
+</details>
 
 ## Set listener for feature or property data changes
 

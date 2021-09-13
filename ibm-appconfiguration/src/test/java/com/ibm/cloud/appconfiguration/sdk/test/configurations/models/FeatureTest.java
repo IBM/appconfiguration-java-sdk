@@ -16,16 +16,19 @@
 package com.ibm.cloud.appconfiguration.sdk.test.configurations.models;
 
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationType;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.*;
-import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 public class FeatureTest {
 
     Feature sut;
-    public void setUpFeature(ConfigurationType type, Object disabled, Object enaabled, Boolean isEnabled) {
+    public void setUpFeature(ConfigurationType type, Object disabled, Object enaabled, Boolean isEnabled,
+                             String format) {
 
         JSONObject feature = new JSONObject();
         try {
@@ -37,6 +40,9 @@ public class FeatureTest {
             feature.put("enabled",isEnabled);
             feature.put("segment_exists", false);
             feature.put("segment_rules",new JSONArray());
+            if (format != null) {
+                feature.put("format", format);
+            }
 
         } catch (Exception e) {
             System.out.println(e);
@@ -46,36 +52,78 @@ public class FeatureTest {
 
 
     @Test public void testFeature() {
-        setUpFeature(ConfigurationType.STRING, "unknown user","Org user", true );
+        setUpFeature(ConfigurationType.STRING, "unknown user","Org user", true, null);
         assertEquals(sut.getFeatureDataType(), ConfigurationType.STRING);
         assertEquals(sut.getFeatureName(), "defaultFeature");
         assertEquals(sut.getFeatureId(), "defaultfeature");
         assertEquals(sut.isEnabled(), true);
         assertEquals(sut.getCurrentValue("d",null),"Org user");
+        assertEquals(sut.getFeatureDataFormat(), "TEXT");
 
     }
 
     @Test
     public void testBooleanFeature() {
-        setUpFeature(ConfigurationType.BOOLEAN, false,true , true);
+        setUpFeature(ConfigurationType.BOOLEAN, false,true , true, null);
         assertEquals(sut.getFeatureDataType(), ConfigurationType.BOOLEAN);
         assertEquals(sut.getFeatureName(), "defaultFeature");
         assertEquals(sut.getFeatureId(), "defaultfeature");
         assertEquals(sut.isEnabled(), true);
+        assertEquals(sut.getFeatureDataFormat(), null);
 
     }
 
     @Test
     public void testNumericFeature() {
-        setUpFeature(ConfigurationType.NUMERIC, 20,50, false );
+        setUpFeature(ConfigurationType.NUMERIC, 20,50, false, null);
         assertEquals(sut.getFeatureDataType(), ConfigurationType.NUMERIC);
         assertEquals(sut.getFeatureName(), "defaultFeature");
         assertEquals(sut.getFeatureId(), "defaultfeature");
         assertEquals(sut.isEnabled(), false);
+        assertEquals(sut.getFeatureDataFormat(), null);
 
         assertEquals(sut.getCurrentValue("d",null),20);
         assertEquals(sut.getCurrentValue(null,null),null);
 
+    }
+
+    @Test
+    public void testYamlFeature() {
+        String enabled = "name: tester\ndescription: testing\n---\nname: developer\ndescription: coding";
+        String disabled = "name: devops\ndescription: deploying\n";
+        setUpFeature(ConfigurationType.STRING, disabled, enabled, true, "YAML");
+        assertEquals(sut.getFeatureDataType(), ConfigurationType.STRING);
+        assertEquals(sut.getFeatureDataFormat(), "YAML");
+        assertEquals(sut.getFeatureName(), "defaultFeature");
+        assertEquals(sut.getFeatureId(), "defaultfeature");
+        assertEquals(sut.isEnabled(), true);
+        assertEquals(sut.getEnabledValue(), enabled);
+        assertEquals(sut.getDisabledValue(), disabled);
+
+        assertEquals(sut.getCurrentValue("d",null), enabled);
+        assertEquals(sut.getCurrentValue(null,null),null);
+    }
+
+    @Test
+    public void testJSONFeature() {
+        JSONObject enabled = new JSONObject();
+        enabled.put("name", "tester");
+        enabled.put("description", "testing");
+
+        JSONObject disabled = new JSONObject();
+        disabled.put("name", "developer");
+        disabled.put("description", "coding");
+
+        setUpFeature(ConfigurationType.STRING, disabled, enabled, true, "JSON");
+        assertEquals(sut.getFeatureDataType(), ConfigurationType.STRING);
+        assertEquals(sut.getFeatureDataFormat(), "JSON");
+        assertEquals(sut.getFeatureName(), "defaultFeature");
+        assertEquals(sut.getFeatureId(), "defaultfeature");
+        assertEquals(sut.isEnabled(), true);
+        assertEquals(((JSONObject) sut.getEnabledValue()).get("name"), "tester");
+        assertEquals(((JSONObject) sut.getDisabledValue()).get("name"), "developer");
+
+        assertEquals(sut.getCurrentValue(null,null),null);
     }
 
     @Test

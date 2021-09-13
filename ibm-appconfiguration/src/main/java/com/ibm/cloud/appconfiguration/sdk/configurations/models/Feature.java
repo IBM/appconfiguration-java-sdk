@@ -34,6 +34,7 @@ public class Feature {
     private String featureId;
     private JSONArray segmentRules;
     private ConfigurationType type;
+    private String format;
     private Object disabledValue;
     private Object enabledValue;
 
@@ -48,6 +49,7 @@ public class Feature {
             this.featureId = featureData.getString(ConfigConstants.FEATURE_ID);
             this.segmentRules = featureData.getJSONArray(ConfigConstants.SEGMENT_RULES);
             this.type = ConfigurationType.valueOf(featureData.getString(ConfigConstants.TYPE));
+            this.format = featureData.optString(ConfigConstants.FORMAT, null);
             this.disabledValue = featureData.get(ConfigConstants.DISABLED_VALUE);
             this.enabledValue = featureData.get(ConfigConstants.ENABLED_VALUE);
 
@@ -108,6 +110,18 @@ public class Feature {
      */
     public ConfigurationType getFeatureDataType() {
         return type;
+    }
+
+    /**
+     * Get the feature format type.
+     *
+     * @return string named TEXT/JSON/YAML/null
+     */
+    public String getFeatureDataFormat() {
+        if (this.type.equals(ConfigurationType.STRING) && this.format == null) {
+            return "TEXT";
+        }
+        return format;
     }
 
     /**
