@@ -29,7 +29,7 @@ public class PropertyTest {
 
 
     Property sut;
-    public void setUpStringProperty(ConfigurationType type, Object value) {
+    public void setUpStringProperty(ConfigurationType type, Object value, String format) {
 
         JSONObject property = new JSONObject();
         try {
@@ -38,6 +38,9 @@ public class PropertyTest {
             property.put("type",type.toString());
             property.put("value",value);
             property.put("segment_rules",new JSONArray());
+            if (format != null) {
+                property.put("format", format);
+            }
         } catch (Exception e) {
             System.out.println(e);
         }
@@ -46,28 +49,59 @@ public class PropertyTest {
 
 
     @Test public void testProperty() {
-        setUpStringProperty(ConfigurationType.STRING, "unknown user");
+        setUpStringProperty(ConfigurationType.STRING, "unknown user", null);
         assertEquals(sut.getPropertyDataType(), ConfigurationType.STRING);
         assertEquals(sut.getPropertyName(), "defaultProperty");
         assertEquals(sut.getPropertyId(), "defaultproperty");
+        assertEquals(sut.getPropertyDataFormat(), "TEXT");
     }
 
     @Test
     public void testBooleanProperty() {
-        setUpStringProperty(ConfigurationType.BOOLEAN, false);
+        setUpStringProperty(ConfigurationType.BOOLEAN, false, null);
         assertEquals(sut.getPropertyDataType(), ConfigurationType.BOOLEAN);
         assertEquals(sut.getPropertyName(), "defaultProperty");
         assertEquals(sut.getPropertyId(), "defaultproperty");
+        assertNull(sut.getPropertyDataFormat());
 
     }
 
     @Test
     public void testNumericProperty() {
-        setUpStringProperty(ConfigurationType.NUMERIC, 20 );
+        setUpStringProperty(ConfigurationType.NUMERIC, 20, null);
         assertEquals(sut.getPropertyDataType(), ConfigurationType.NUMERIC);
         assertEquals(sut.getPropertyName(), "defaultProperty");
         assertEquals(sut.getPropertyId(), "defaultproperty");
         assertEquals(sut.getCurrentValue("d",null),20);
+        assertNull(sut.getPropertyDataFormat());
+    }
+
+    @Test
+    public void testYamlProperty() {
+        String value = "name: tester\ndescription: testing\n---\nname: developer\ndescription: coding";
+        setUpStringProperty(ConfigurationType.STRING, value, "YAML");
+        assertEquals(sut.getPropertyDataType(), ConfigurationType.STRING);
+        assertEquals(sut.getPropertyName(), "defaultProperty");
+        assertEquals(sut.getPropertyId(), "defaultproperty");
+        assertEquals(sut.getValue(), value);
+        assertEquals(sut.getCurrentValue("d",null), value);
+        assertEquals(sut.getPropertyDataFormat(), "YAML");
+    }
+
+    @Test
+    public void testJsonProperty() {
+        JSONObject value = new JSONObject();
+        value.put("name", "tester");
+        value.put("description", "testing");
+
+        setUpStringProperty(ConfigurationType.STRING, value, "JSON");
+        assertEquals(sut.getPropertyDataType(), ConfigurationType.STRING);
+        assertEquals(sut.getPropertyName(), "defaultProperty");
+        assertEquals(sut.getPropertyId(), "defaultproperty");
+        assertEquals(((JSONObject) sut.getValue()).getString("name"), "tester");
+        assertEquals(((JSONObject)sut.getCurrentValue("d",null)).getString("description"),
+            "testing");
+        assertEquals(sut.getPropertyDataFormat(), "JSON");
     }
 
     @Test

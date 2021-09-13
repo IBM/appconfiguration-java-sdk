@@ -50,4 +50,5 @@ public class ConfigConstants {
     public static final String TYPE = "type";
     public static final String ENABLED_VALUE = "enabled_value";
     public static final String DISABLED_VALUE = "disabled_value";
+    public static final String FORMAT = "format";
 }

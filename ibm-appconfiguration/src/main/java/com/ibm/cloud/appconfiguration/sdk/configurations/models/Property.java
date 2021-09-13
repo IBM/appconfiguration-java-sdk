@@ -33,6 +33,7 @@ public class Property {
     private String propertyId;
     private JSONArray segmentRules;
     private ConfigurationType type;
+    private String format;
     private Object value;
 
     /**
@@ -45,6 +46,7 @@ public class Property {
             this.propertyId = propertyData.getString(ConfigConstants.PROPERTY_ID);
             this.segmentRules = propertyData.getJSONArray(ConfigConstants.SEGMENT_RULES);
             this.type = ConfigurationType.valueOf(propertyData.getString(ConfigConstants.TYPE));
+            this.format = propertyData.optString(ConfigConstants.FORMAT, null);
             this.value = propertyData.get(ConfigConstants.VALUE);
         } catch (Exception e) {
             AppConfigException.logException("Property", "Constructor", e,
@@ -87,6 +89,18 @@ public class Property {
      */
     public ConfigurationType getPropertyDataType() {
         return type;
+    }
+
+    /**
+     *  Get the Property format type.
+     *
+     * @return string named TEXT/JSON/YAML/null
+     */
+    public String getPropertyDataFormat() {
+        if (this.type.equals(ConfigurationType.STRING) && this.format == null) {
+            return "TEXT";
+        }
+        return format;
     }
 
     /**
