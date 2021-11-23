@@ -189,9 +189,10 @@ public class Metering {
                             entityMap.forEach((segmentId, segmentIdMap) -> {
                                 JSONObject usages = new JSONObject();
                                 usages.put(key, featureId);
-                                usages.put(ConfigConstants.ENTITY_ID, entityId);
+                                usages.put(ConfigConstants.ENTITY_ID,
+                                        entityId.equals(ConfigConstants.DEFAULT_ENTITY_ID) ? JSONObject.NULL : entityId);
                                 usages.put(ConfigConstants.SEGMENT_ID,
-                                    segmentId == ConfigConstants.DEFAULT_SEGMENT_ID ? JSONObject.NULL : segmentId);
+                                        segmentId.equals(ConfigConstants.DEFAULT_SEGMENT_ID) ? JSONObject.NULL : segmentId);
                                 usages.put(ConfigConstants.EVALUATION_TIME, segmentIdMap.get(ConfigConstants.EVALUATION_TIME));
                                 usages.put(ConfigConstants.COUNT, segmentIdMap.get(ConfigConstants.COUNT));
                                 collections.getJSONArray(ConfigConstants.USAGES).put(usages);

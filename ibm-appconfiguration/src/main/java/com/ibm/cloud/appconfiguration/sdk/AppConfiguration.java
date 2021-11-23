@@ -34,7 +34,7 @@ import java.util.HashMap;
  * Toggle feature flag states in the cloud to activate or deactivate features in your application or
  * environment, when required. You can also manage the properties for distributed applications centrally.
  *
- * @version 0.2.0
+ * @version 0.2.1
  * @see <a href="https://cloud.ibm.com/docs/app-configuration">App Configuration</a>
  */
 public class AppConfiguration {

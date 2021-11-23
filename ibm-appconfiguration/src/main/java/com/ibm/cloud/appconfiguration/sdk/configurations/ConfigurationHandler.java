@@ -387,18 +387,19 @@ public class ConfigurationHandler {
      * Feature evaluation.
      *
      * @param feature feature object
+     * @param isEnabled feature object's "enabled" value (true/false)
      * @param entityId entity id
      * @param entityAttributes entity attributes JSON object
      * @return feature evaluated value
      */
-    public Object featureEvaluation(Feature feature, String entityId, JSONObject entityAttributes) {
+    public Object featureEvaluation(Feature feature, Boolean isEnabled, String entityId, JSONObject entityAttributes) {
 
         JSONObject resultDict = new JSONObject();
         resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, ConfigConstants.DEFAULT_SEGMENT_ID);
         resultDict.put(ConfigConstants.VALUE, new Object());
 
         try {
-            if (feature.isEnabled()) {
+            if (isEnabled) {
                 if (entityAttributes == null || entityAttributes.isEmpty()) {
                     return feature.getEnabledValue();
                 }
