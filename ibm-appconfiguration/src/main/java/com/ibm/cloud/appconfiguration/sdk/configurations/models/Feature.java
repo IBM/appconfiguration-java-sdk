@@ -1,12 +1,12 @@
 /**
  * Copyright 2021 IBM Corp. All Rights Reserved.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -54,7 +54,7 @@ public class Feature {
             this.enabledValue = featureData.get(ConfigConstants.ENABLED_VALUE);
 
         } catch (Exception e) {
-            AppConfigException.logException("Feature", "Constructor", e, new Object[] { "Invalid action in Feature class."});
+            AppConfigException.logException("Feature", "Constructor", e, new Object[]{"Invalid action in Feature class."});
         }
     }
 
@@ -64,6 +64,10 @@ public class Feature {
      * @return {@code true} or {@code false}
      */
     public Boolean isEnabled() {
+
+        ConfigurationHandler configurationHandler = ConfigurationHandler.getInstance();
+        configurationHandler.recordValuation(this.featureId, null, ConfigConstants.DEFAULT_ENTITY_ID,
+                ConfigConstants.DEFAULT_SEGMENT_ID);
         return this.enabled;
     }
 
@@ -147,7 +151,7 @@ public class Feature {
             return null;
         }
         ConfigurationHandler configurationHandler = ConfigurationHandler.getInstance();
-        return configurationHandler.featureEvaluation(this, entityId, entityAttributes);
+        return configurationHandler.featureEvaluation(this, this.enabled, entityId, entityAttributes);
 
     }
 }

@@ -66,14 +66,14 @@ public class ConfigurationHandlerTest {
         JSONObject entityObj = new JSONObject();
         entityObj.put("email", "test.dev@tester.com");
 
-        Object value = configurationHandler.featureEvaluation(featureObj, "id1", entityObj);
+        Object value = configurationHandler.featureEvaluation(featureObj, true,"id1", entityObj);
         assertEquals(value, "Welcome");
 
         entityObj.put("email", "test@tester.com");
-        value = configurationHandler.featureEvaluation(featureObj, "id1", entityObj);
+        value = configurationHandler.featureEvaluation(featureObj, true, "id1", entityObj);
         assertEquals(value, "hello");
 
-        value = configurationHandler.featureEvaluation(featureObj, "id1", new JSONObject());
+        value = configurationHandler.featureEvaluation(featureObj, true, "id1", new JSONObject());
         assertEquals(value, "hello");
 
 

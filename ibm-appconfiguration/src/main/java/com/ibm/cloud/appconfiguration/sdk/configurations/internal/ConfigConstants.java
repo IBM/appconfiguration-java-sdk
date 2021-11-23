@@ -24,6 +24,7 @@ public class ConfigConstants {
     private ConfigConstants() { }
 
     public static final String DEFAULT_SEGMENT_ID = "$$null$$";
+    public static final String DEFAULT_ENTITY_ID = "$$null$$";
     public static final String DEFAULT_HTTP_TYPE = "https://";
     public static final String DEFAULT_WSS_TYPE = "wss://";
     public static final String DEFAULT_BASE_URL = ".apprapp.cloud.ibm.com";
