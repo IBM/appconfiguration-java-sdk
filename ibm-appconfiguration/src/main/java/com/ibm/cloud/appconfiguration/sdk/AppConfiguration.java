@@ -34,7 +34,7 @@ import java.util.HashMap;
  * Toggle feature flag states in the cloud to activate or deactivate features in your application or
  * environment, when required. You can also manage the properties for distributed applications centrally.
  *
- * @version 0.2.1
+ * @version 0.2.2
  * @see <a href="https://cloud.ibm.com/docs/app-configuration">App Configuration</a>
  */
 public class AppConfiguration {
@@ -43,6 +43,7 @@ public class AppConfiguration {
     public static final String REGION_US_SOUTH = "us-south";
     public static final String REGION_EU_GB = "eu-gb";
     public static final String REGION_AU_SYD = "au-syd";
+    public static final String REGION_US_EAST = "us-east";
     public static String overrideServerHost = null;
 
     private String apiKey = "";
