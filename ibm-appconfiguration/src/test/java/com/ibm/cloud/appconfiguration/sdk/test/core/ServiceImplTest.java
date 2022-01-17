@@ -37,7 +37,7 @@ public class ServiceImplTest {
         assertNotEquals(ServiceImpl.getCurrentDateTime(), String.valueOf(Instant.now()),
             "These two values are not equal");
 
-        assertEquals("0.2.1", ServiceImpl.getVersion(), "version are same in pom.xml");
+        assertEquals("0.2.2", ServiceImpl.getVersion(), "version are same in pom.xml");
         assertEquals("appconfiguration-java-sdk", ServiceImpl.getArtifactId(), "Artifact Id are same");
 
         ServiceImpl test = ServiceImpl.getInstance("apikey", "test");
