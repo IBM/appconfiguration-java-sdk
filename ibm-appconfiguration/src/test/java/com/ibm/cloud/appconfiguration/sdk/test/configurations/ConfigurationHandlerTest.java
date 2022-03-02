@@ -19,6 +19,7 @@ package com.ibm.cloud.appconfiguration.sdk.test.configurations;
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationUpdateListener;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationOptions;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Property;
 import org.json.JSONObject;
@@ -40,9 +41,10 @@ public class ConfigurationHandlerTest {
         configurationHandler.registerConfigurationUpdateListener(null);
         Path resourceDirectory = Paths.get("src","test","resources");
         String absolutePath = resourceDirectory.toFile().getAbsolutePath();
-
-        configurationHandler.setContext(ConfigConstants.COLLECTION_ID, ConfigConstants.ENVIRONMENT_ID, absolutePath + "/user.json",
-        false);
+        ConfigurationOptions configOption = new ConfigurationOptions();
+        configOption.setBootstrapFile(absolutePath + "/user.json");
+        configOption.setLiveConfigUpdateEnabled(false);
+        configurationHandler.setContext(ConfigConstants.COLLECTION_ID, ConfigConstants.ENVIRONMENT_ID, configOption);
         configurationHandler.loadData();
         final Boolean[] onData = {false};
         configurationHandler.registerConfigurationUpdateListener(new ConfigurationUpdateListener() {

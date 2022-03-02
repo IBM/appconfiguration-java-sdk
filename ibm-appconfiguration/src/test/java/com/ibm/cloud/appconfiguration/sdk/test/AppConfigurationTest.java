@@ -18,6 +18,7 @@ package com.ibm.cloud.appconfiguration.sdk.test;
 
 import com.ibm.cloud.appconfiguration.sdk.AppConfiguration;
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationUpdateListener;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationOptions;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Property;
 import org.json.JSONObject;
@@ -41,10 +42,9 @@ public class AppConfigurationTest {
         appConfiguration.setContext("collectionId", "environmentId");
         appConfiguration.setContext("collectionId", "environmentId","",true);
 
-
         appConfiguration.init("","guid","apikey");
         appConfiguration.init("region","","apikey");
-
+        
         appConfiguration.init("region","guid","");
         appConfiguration.init("region","guid","apikey");
 
@@ -96,4 +96,26 @@ public class AppConfigurationTest {
         assertEquals(81,property.getCurrentValue("pqvr", attributes));
 
     }
+    
+    @Test
+	public void testConfigurationOptions() {
+		Path resourceDirectory = Paths.get("src", "test", "resources");
+		AppConfiguration appConfiguration = AppConfiguration.getInstance();
+		String absolutePath = resourceDirectory.toFile().getAbsolutePath() + "/appconfiguration.json";
+		
+		ConfigurationOptions op = new ConfigurationOptions();
+		op.setBootstrapFile(absolutePath);
+		//appConfiguration.setContext("collectionId", "environmentId", absolutePath, false);
+
+		appConfiguration.init("region", "guid", "apikey");
+		appConfiguration.setContext("collectionId", "environmentId", op);
+		appConfiguration.fetchConfigurations();
+
+		assertTrue(appConfiguration.getFeatures().size() == 3);
+		Feature feature = appConfiguration.getFeature("defaultfeature");
+		String idVal = feature.getFeatureId();
+
+		assertTrue(idVal.equals("defaultfeature"));
+
+	}
 }
