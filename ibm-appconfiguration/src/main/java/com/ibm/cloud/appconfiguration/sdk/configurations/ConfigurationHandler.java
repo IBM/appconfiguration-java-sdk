@@ -33,6 +33,7 @@ import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Socket;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.SocketHandler;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.URLBuilder;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationOptions;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.Segment;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.SegmentRules;
@@ -64,9 +65,10 @@ public class ConfigurationHandler {
     private HashMap<String, Property> propertyMap = new HashMap();
     private HashMap<String, Segment> segmentMap = new HashMap();
     private Boolean liveConfigUpdateEnabled = true;
-    private String configurationFile = null;
+    private String bootstrapFile = null;
     private Boolean onSocketRetry = false;
     private String overrideServerHost = null;
+    private String persistentCacheLocation = null;
 
     private RetryHandler configRetry;
     private RetryHandler socketRetry;
@@ -111,45 +113,93 @@ public class ConfigurationHandler {
     /**
      * @param collectionId collection id
      * @param environmentId environment id
-     * @param configurationFile local configuration file path.
-     * @param liveConfigUpdateEnabled live configurations update from the server
+     * @param configOption configOption object contains three fields
+     *                     configOption.persistentCacheDir : The SDK will create a file - 'appconfiguration.json'
+     *                     in the specified directory and it will be used as the persistent cache to store the
+     *                     App Configuration service information.
+     *                     configOption.bootstrapFile : Absolute path of configuration file. This parameter
+     *                     when passed along with `liveConfigUpdateEnabled` value will drive the SDK to use the
+     *                     configurations present in this file to perform feature and property evaluations
+     *                     configOption.liveConfigUpdateEnabled : live configurations update from the server.
+     *                     Set this value to `false` if the new configuration values shouldn't be fetched from the server.
      */
-    public void setContext(String collectionId, String environmentId,
-        String configurationFile, Boolean liveConfigUpdateEnabled) {
+    public void setContext(String collectionId, String environmentId, ConfigurationOptions configOption) {
+        if (configOption != null) {
+            this.liveConfigUpdateEnabled = configOption.getLiveConfigUpdateEnabled();
+            this.bootstrapFile = configOption.getBootstrapFile();
+            this.persistentCacheLocation = configOption.getPersistentCacheDirectory();
+        }
         this.collectionId = collectionId;
         this.environmentId = environmentId;
         URLBuilder.initWithContext(collectionId, environmentId, region, guid, overrideServerHost);
         Metering.getInstance().setMeteringUrl(URLBuilder.getMeteringUrl(guid), apikey);
-        this.liveConfigUpdateEnabled = liveConfigUpdateEnabled;
-        this.configurationFile = configurationFile;
         this.isInitialized = true;
 
+        // just to checks connectivity
         if (this.liveConfigUpdateEnabled) {
             new Thread(() -> checkNetwork()).start();
         }
+        loadDataByConfiguration();
     }
 
-    public synchronized void loadData() {
+    private void loadDataByConfiguration() {
+        if (Validators.validateString(persistentCacheLocation) && Validators.validateString(bootstrapFile)) {
+            loadBootStrapFileAndPersistanceData(bootstrapFile, persistentCacheLocation, liveConfigUpdateEnabled);
+        } else if (Validators.validateString(persistentCacheLocation)) {
+            loadPersistanceCacheData(persistentCacheLocation);
+        } else if (Validators.validateString(bootstrapFile)) {
+            loadBootstrapFileData(bootstrapFile, liveConfigUpdateEnabled);
+        } else if (!Validators.validateString(persistentCacheLocation) && !Validators.validateString(bootstrapFile)) {
+            loadData();
+        }
+    }
 
-        if (this.isInitialized) {
+    /*
+     *  it will create the configuration file in given directory.
+     *  it will read the data from the file and populate it map
+     *  make the API call and populate the response in maps and also store the response in persistentCacheDir file
+     */
+    private void loadPersistanceCacheData(String persistentCacheDir) {
+        JSONObject data = FileManager.readFiles(persistentCacheDir);
+        loadConfigurationsAndPopulateInMap(data);
+        loadData();
+    }
 
-            if (Validators.validateString(this.configurationFile)) {
-                this.getFileData(this.configurationFile);
+    private void loadBootstrapFileData(String bootstrapFile, Boolean liveConfigUpdateEnabled) {
+        JSONObject data = FileManager.readFiles(bootstrapFile);
+        loadConfigurationsAndPopulateInMap(data);
+        loadData();
+    }
+
+    private void loadBootStrapFileAndPersistanceData(String bootstrapFile, String persistentCacheDir, Boolean liveConfigUpdateEnabled) {
+        JSONObject persistentData = FileManager.readFiles(persistentCacheDir);
+        if (!persistentData.isEmpty()) {
+            loadConfigurationsAndPopulateInMap(persistentData);
+        } else {
+            JSONObject data = FileManager.readFiles(bootstrapFile);
+            loadConfigurationsAndPopulateInMap(data);
+            try {
+                HashMap<String, Object> map = new ObjectMapper().readValue(data.toString(), HashMap.class);
+                FileManager.createAndStoreFile(map, persistentCacheDir);
+            } catch (Exception e) {
+                AppConfigException.logException(this.getClass().getName(), " loadBootStrapFileAndPersistanceData", e);
             }
-            this.loadConfigurations();
+        }
+        loadData();
+    }
+
+
+    public synchronized void loadData() {
+        if (this.isInitialized) {
             if (this.liveConfigUpdateEnabled) {
                 this.fetchConfigData();
-            } else {
-                if (this.socket != null) {
-                    this.socket.cancel();
-                }
+            } else if (this.socket != null) {
+                this.socket.cancel();
             }
         } else {
             BaseLogger.debug(ConfigMessages.CONFIG_HANDLER_INIT_ERROR);
         }
     }
-
-
 
     public void registerConfigurationUpdateListener(ConfigurationUpdateListener listener) {
 
@@ -178,14 +228,8 @@ public class ConfigurationHandler {
     public Property getProperty(String propertyId) {
         if (propertyMap.containsKey(propertyId)) {
             return propertyMap.get(propertyId);
-        } else {
-            this.loadConfigurations();
-            if (propertyMap.containsKey(propertyId)) {
-                return propertyMap.get(propertyId);
-            } else {
-                BaseLogger.error(ConfigMessages.PROPERTY_INVALID + propertyId);
-            }
         }
+        BaseLogger.error(ConfigMessages.PROPERTY_INVALID + propertyId);
         return null;
     }
 
@@ -207,14 +251,9 @@ public class ConfigurationHandler {
     public Feature getFeature(String featureId) {
         if (featureMap.containsKey(featureId)) {
             return featureMap.get(featureId);
-        } else {
-            this.loadConfigurations();
-            if (featureMap.containsKey(featureId)) {
-                return featureMap.get(featureId);
-            } else {
-                BaseLogger.error(ConfigMessages.FEATURE_INVALID + featureId);
-            }
         }
+        //Removed code which is not required
+        BaseLogger.error(ConfigMessages.FEATURE_INVALID + featureId);
         return null;
     }
 
@@ -248,9 +287,13 @@ public class ConfigurationHandler {
     }
 
     private void fetchConfigData() {
+        this.fetchFromApi();
+        initializeWebSocket();
+    }
+
+    private void initializeWebSocket() {
         if (this.isInitialized) {
             this.retryCount = 3;
-            this.fetchFromApi();
             this.onSocketRetry = false;
             new Thread(() -> this.startWebSocket()).start();
         }
@@ -275,23 +318,9 @@ public class ConfigurationHandler {
         }
     }
 
-    private void getFileData(String filePath) {
-        JSONObject data = FileManager.readFiles(filePath);
 
-        if (!data.isEmpty()) {
-            try {
-                HashMap<String, Object> result =
-                        new ObjectMapper().readValue(data.toString(), HashMap.class);
-                this.writeToFile(result);
-            } catch (Exception e) {
-                AppConfigException.logException(this.getClass().getName(), "getFileData", e);
-            }
+    public void loadConfigurationsAndPopulateInMap(JSONObject data) {
 
-        }
-    }
-
-    private void loadConfigurations() {
-        JSONObject data = FileManager.readFiles(null);
         if (!data.isEmpty()) {
             if (data.has(ConfigConstants.FEATURES)) {
                 this.featureMap = new HashMap<>();
@@ -336,6 +365,7 @@ public class ConfigurationHandler {
             }
         }
     }
+
 
     /**
      * Records each of feature and property evaluations done by sending it to {@link Metering}.
@@ -490,19 +520,6 @@ public class ConfigurationHandler {
         return ruleMap;
     }
 
-    private void writeServerFile(HashMap json) {
-        if (this.liveConfigUpdateEnabled) {
-            this.writeToFile(json);
-        }
-    }
-
-    private void writeToFile(HashMap json) {
-        FileManager.storeFile(json);
-        this.loadConfigurations();
-        if (this.configurationUpdateListener != null) {
-            this.configurationUpdateListener.onConfigurationUpdate();
-        }
-    }
 
     private void fetchFromApi() {
         if (this.isInitialized) {
@@ -519,7 +536,13 @@ public class ConfigurationHandler {
                         }
                         HashMap<String, Object> map = new ObjectMapper().readValue((String) response.getResult(),
                         HashMap.class);
-                        writeServerFile(map);
+
+                        JSONObject obj = new JSONObject(map);
+                        loadConfigurationsAndPopulateInMap(obj);
+                        if (this.persistentCacheLocation != null) {
+                            FileManager.createAndStoreFile(map, persistentCacheLocation);
+                        }
+
                     } catch (Exception e) {
                         AppConfigException.logException(this.getClass().getName(), "fetchFromApi", e);
                     }
@@ -537,6 +560,13 @@ public class ConfigurationHandler {
             }
         } else {
             BaseLogger.debug(ConfigMessages.CONFIG_HANDLER_INIT_ERROR);
+        }
+    }
+
+
+    private void updatedConfiguration() {
+        if (this.configurationUpdateListener != null) {
+            this.configurationUpdateListener.onConfigurationUpdate();
         }
     }
 
@@ -593,6 +623,7 @@ public class ConfigurationHandler {
                 @Override
                 public void onMessage(String message) {
                     fetchFromApi();
+                    updatedConfiguration();
                     BaseLogger.debug("Received message from socket " + message);
                 }
 

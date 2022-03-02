@@ -20,11 +20,14 @@ import com.ibm.cloud.appconfiguration.sdk.configurations.models.Property;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationUpdateListener;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigMessages;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationOptions;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
 
 import java.util.HashMap;
+
 
 /**
  * IBM Cloud App Configuration is a centralized feature management and configuration service on IBM
@@ -34,7 +37,7 @@ import java.util.HashMap;
  * Toggle feature flag states in the cloud to activate or deactivate features in your application or
  * environment, when required. You can also manage the properties for distributed applications centrally.
  *
- * @version 0.2.2
+ * @version 0.2.3
  * @see <a href="https://cloud.ibm.com/docs/app-configuration">App Configuration</a>
  */
 public class AppConfiguration {
@@ -52,6 +55,9 @@ public class AppConfiguration {
     private Boolean isInitialized = false;
     private Boolean isInitializedConfig = false;
     private ConfigurationHandler configurationHandlerInstance = null;
+    private String persistentCacheLocation = null;
+    private String bootstrapFile = null;
+    private Boolean liveConfigUpdateEnabled = true;
 
     /**
      * Returns an instance of the {@link AppConfiguration} class. If the same {@link AppConfiguration} instance
@@ -109,7 +115,7 @@ public class AppConfiguration {
      * @param environmentId Id of the environment created in App Configuration service instance
      */
     public void setContext(String collectionId, String environmentId) {
-        this.setContext(collectionId, environmentId, null, true);
+        this.setContext(collectionId, environmentId, null);
     }
 
     /**
@@ -117,37 +123,88 @@ public class AppConfiguration {
      *
      * @param collectionId Id of the collection created in App Configuration service instance
      * @param environmentId Id of the environment created in App Configuration service instance
-     * @param configurationFile local configuration file path. This parameter when passed along
-     *                          with {@code liveConfigUpdateEnabled} will drive the SDK to use the local
-     *                          configuration file to perform feature and property evaluations.
+     * @param configOption ConfigurationOptions object that contains the configuration parameters.
+     *                     There are three parameters that can be set.
+     *                     configOption.persistentCacheDirectory : The SDK will create a file - 'appconfiguration.json'
+     *                     in the specified directory and it will be used as the persistent cache to store the
+     *                     App Configuration service information.
+     *                     configOption.bootstrapFile : Absolute path of configuration file. This parameter
+     *                     when passed along with `liveConfigUpdateEnabled` value will drive the SDK to use the
+     *                     configurations present in this file to perform feature and property evaluations
+     *                     configOption.liveConfigUpdateEnabled : live configurations update from the server.
+     *                     Set this value to `false` if the new configuration values shouldn't be fetched from the server.
+     */
+    public void setContext(String collectionId, String environmentId, ConfigurationOptions configOption) {
+
+        if (configOption != null) {
+            persistentCacheLocation = configOption.getPersistentCacheDirectory();
+            bootstrapFile = configOption.getBootstrapFile();
+            liveConfigUpdateEnabled = configOption.getLiveConfigUpdateEnabled();
+        }
+
+        if (liveConfigUpdateEnabled == null) {
+            liveConfigUpdateEnabled = true;
+            configOption.setLiveConfigUpdateEnabled(liveConfigUpdateEnabled);
+        }
+
+        if (persistentCacheLocation != null) {
+            persistentCacheLocation = persistentCacheLocation.endsWith("/")
+                    ? persistentCacheLocation + ConfigConstants.PERSISTENTCACHE_FILE
+                    : persistentCacheLocation + "/" + ConfigConstants.PERSISTENTCACHE_FILE;
+            configOption.setPersistentCacheDirectory(persistentCacheLocation);
+        }
+
+        //It will return if any one of the input is not valid
+        if (!Validators.isValidRequest(collectionId, environmentId, isInitialized)) {
+            return;
+        }
+
+        //It will return if liveConfigUpdateEnabled is false and bootstrapFile is not passed
+        if (!liveConfigUpdateEnabled && !Validators.validateString(bootstrapFile)) {
+            BaseLogger.error(ConfigMessages.BOOTSTRAP_FILE_NOT_FOUND_ERROR);
+            return;
+        }
+
+        this.isInitializedConfig = true;
+        this.configurationHandlerInstance.setContext(collectionId, environmentId, configOption);
+    }
+
+
+    /**
+     * Sets the context of the SDK.
+     *
+     * @param collectionId            Id of the collection created in App Configuration service instance
+     * @param environmentId           Id of the environment created in App Configuration service instance
+     * @param configurationFile       local configuration file path. This parameter when passed along
+     *                                with {@code liveConfigUpdateEnabled} will drive the SDK to use the local
+     *                                configuration file to perform feature and property evaluations.
      * @param liveConfigUpdateEnabled live configurations update from the server. Set this value to {@code false}
      *                                if the new configuration values shouldn't be fetched from the server.
+     *
+     * @deprecated Use setContext(String, String, ConfigurationOptions) instead.
      */
+    @Deprecated
     public void setContext(String collectionId, String environmentId,
                            String configurationFile, Boolean liveConfigUpdateEnabled) {
 
-        if (!this.isInitialized) {
-            BaseLogger.error(ConfigMessages.COLLECTION_ID_ERROR);
-            return;
-        }
-        if (!Validators.validateString(collectionId)) {
-            BaseLogger.error(ConfigMessages.COLLECTION_ID_VALUE_ERROR);
+        //It will return if any one of the input is not valid
+        if (!Validators.isValidRequest(collectionId, environmentId, isInitialized)) {
             return;
         }
 
-        if (!Validators.validateString(environmentId)) {
-            BaseLogger.error(ConfigMessages.ENVIRONMENT_ID_VALUE_ERROR);
-            return;
+        if (liveConfigUpdateEnabled == null) {
+            liveConfigUpdateEnabled = true;
         }
+
         if (!liveConfigUpdateEnabled && !Validators.validateString(configurationFile)) {
             BaseLogger.error(ConfigMessages.CONFIG_FILE_NOT_FOUND_ERROR);
             return;
         }
         this.isInitializedConfig = true;
-
-        this.configurationHandlerInstance.setContext(collectionId, environmentId,
-                                                    configurationFile, liveConfigUpdateEnabled);
-        this.configurationHandlerInstance.loadData();
+        ConfigurationOptions configOption = new ConfigurationOptions();
+        configOption.setLiveConfigUpdateEnabled(liveConfigUpdateEnabled);
+        configOption.setBootstrapFile(configurationFile);
+        this.configurationHandlerInstance.setContext(collectionId, environmentId, configOption);
     }
 
     /**
@@ -240,4 +297,6 @@ public class AppConfiguration {
     public void enableDebug(Boolean enable) {
         BaseLogger.setDebug(enable);
     }
+
+
 }

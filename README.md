@@ -19,20 +19,20 @@ Instrument your applications with App Configuration Java SDK, and use the App Co
 
 ## Installation
 
-### maven 
+### maven
 
 ```xml
 <dependency>
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>0.2.2</version>
+    <version>0.2.3</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```sh
-implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.2.2'
+implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.2.3'
 ```
 
 ## Import the SDK
@@ -71,24 +71,39 @@ using **`AppConfiguration.getInstance()`**.  [See this example below](#fetching-
 - collectionId : Id of the collection created in App Configuration service instance under the **Collections** section.
 - environmentId : Id of the environment created in App Configuration service instance under the **Environments** section.
 
-> Here, by default live update from the server is enabled. To turn off this mode see the [below section](#work-offline-with-local-configuration-file)
-
-### Work offline with local configuration file
-You can also work offline with local configuration file and perform feature and property related operations.
+### (Optional)
+In order for your application and SDK to continue its operations even during the unlikely scenario of App Configuration service across your application restarts, you can configure the SDK to work using a persistent cache. The SDK uses the persistent cache to store the App Configuration data that will be available across your application restarts.
 
 ```java
+// 1. default (without persistent cache)
+    appConfigClient.setContext(collectionId, environmentId);
 
-String configurationFile = "saflights/flights.json";
-Boolean liveConfigUpdateEnabled = false;
-
-appConfigClient.setContext(collectionId, environmentId, configurationFile, liveConfigUpdateEnabled);
+// 2. optional (with persistent cache)
+    ConfigurationOptions configOptions = new ConfigurationOptions();
+    configOptions.setPersistentCacheDirectory("/var/lib/docker/volumes/");
+    appConfigClient.setContext(collectionId, environmentId, configOptions);
 
 ```
-- configurationFile : Path to the JSON file which contains configuration details.
-- liveConfigUpdateEnabled : Set this value to false if the new configuration values shouldn't be fetched from the server. Make sure to provide a proper JSON file in the configurationFile path. By default, this value is enabled.
+- persistentCacheDirectory: Absolute path to a directory which has read & write permission for the user. The SDK will create a file - appconfiguration.json in the specified directory, and it will be used as the persistent cache to store the App Configuration service information.
 
-### Permissions required by SDK
-Add write permission for `non-root` users to `appconfiguration.json` file which is used as cache in AppConfiguration SDK.
+When persistent cache is enabled, the SDK will keep the last known good configuration at the persistent cache. In the case of App Configuration server being unreachable, the latest configurations at the persistent cache is loaded to the application to continue working.
+    
+Please ensure that the cache file is not lost or deleted in any case. For example, consider the case when a kubernetes pod is restarted and the cache file (appconfiguration.json) was stored in ephemeral volume of the pod. As pod gets restarted, kubernetes destroys the ephermal volume in the pod, as a result the cache file gets deleted. So, make sure that the cache file created by the SDK is always stored in persistent volume by providing the correct absolute path of the persistent directory.
+
+
+### (Optional)
+The SDK is also designed to serve configurations, perform feature flag & property evaluations without being connected to App Configuration service.
+
+```java
+ConfigurationOptions configOptions = new ConfigurationOptions();
+configOptions.setBootstrapFile("saflights/flights.json");
+configOptions.setLiveConfigUpdateEnabled(false);
+```
+
+- bootstrapFile: Absolute path of the JSON file, which contains configuration details. Make sure to provide a proper JSON file. You can generate this file using `ibmcloud ac config` command of the IBM Cloud App Configuration CLI.
+- liveConfigUpdateEnabled: Live configuration update from the server. Set this value to `false` if the new configuration values shouldn't be fetched from the server.
+
+
 ## Get single feature
 
 ```java
@@ -102,15 +117,15 @@ if (feature) {
 }
 ```
 
-## Get all features 
+## Get all features
 
 ```java
 HashMap<String, Feature> features = appConfigClient.getFeatures();
 ```
 
-## Evaluate a feature 
+## Evaluate a feature
 
-You can use the feature.getCurrentValue(entityId, entityAttributes) method to evaluate the value of the feature flag. 
+You can use the feature.getCurrentValue(entityId, entityAttributes) method to evaluate the value of the feature flag.
 
 You should pass an unique entityId as the parameter to perform the feature flag evaluation. If the feature flag is configured with segments in the App Configuration service, you can set the attributes values as a JSONObject.
 
@@ -136,15 +151,15 @@ if (property) {
 }
 ```
 
-## Get all properties 
+## Get all properties
 
 ```java
 HashMap<String, Property> property = appConfigClient.getProperties();
 ```
 
-## Evaluate a property 
+## Evaluate a property
 
-You can use the property.getCurrentValue(entityId, entityAttributes) method to evaluate the value of the property. 
+You can use the property.getCurrentValue(entityId, entityAttributes) method to evaluate the value of the property.
 
 You should pass an unique entityId as the parameter to perform the property evaluation. If the property is configured with segments in the App Configuration service, you can set the attributes values as a JSONObject.
 
@@ -230,7 +245,7 @@ if (property != null) {
     property.getPropertyDataType()     // STRING
     property.getPropertyDataFormat()   // JSON
     property.getCurrentValue(entityId, entityAttributes) // JSONObject or JSONArray is returned
-    
+
 }
 
 // Example Below
@@ -251,7 +266,7 @@ if (property != null) {
     property.getPropertyDataType()     // STRING
     property.getPropertyDataFormat()   // YAML
     property.getCurrentValue(entityId, entityAttributes) // Yaml String is returned
-    
+
 }
 ```
 
@@ -269,14 +284,14 @@ appConfigClient.registerConfigurationUpdateListener(new ConfigurationUpdateListe
         System.out.println("Received updated configurations");
         // **add your code**
         // To find the effect of any configuration changes, you can call the feature or property related methods
-        
+
         // Feature feature = appConfigClient.getFeature("numeric-feature");
         // Integer newValue = (Integer) feature.getCurrentValue(entityId, entityAttributes);
     }
 });
 ```
 
-## Fetch latest data 
+## Fetch latest data
 
 ```java
 appConfigClient.fetchConfigurations();

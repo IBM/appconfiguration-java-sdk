@@ -34,6 +34,7 @@ public class ConfigMessages {
     public static final String COLLECTION_INIT_ERROR = "Invalid action in App Configuration. This action can be performed only after a successful initialization"
                                                        + " and setContext operation. Please check the initialization and setContext sections for errors.";
     public static final String CONFIG_FILE_NOT_FOUND_ERROR = "configurationFile parameter should be provided while liveConfigUpdateEnabled is false during initialization";
+    public static final String BOOTSTRAP_FILE_NOT_FOUND_ERROR = "bootstrapFile parameter should be provided while liveConfigUpdateEnabled is false during initialization";
     public static final String CONFIG_HANDLER_INIT_ERROR = "Invalid action in ConfigurationHandler. This action can be performed only after a successful initialization."
                                                            + " Please check the initialization section for errors.";
     public static final String CONFIG_API_ERROR = "Invalid configuration. Verify the collectionId, environmentId, apikey, guid and region.";

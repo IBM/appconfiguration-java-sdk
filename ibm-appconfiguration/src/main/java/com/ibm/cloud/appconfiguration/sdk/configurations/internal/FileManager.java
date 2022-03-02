@@ -64,6 +64,23 @@ public class FileManager {
         return true;
     }
 
+
+    public static Boolean createAndStoreFile(HashMap hashMapData, String dirPath) {
+        if (hashMapData.isEmpty() || hashMapData == null) {
+            return false;
+        }
+        try {
+            File targetFile = new File(dirPath);
+            boolean success = targetFile.createNewFile();
+            ObjectMapper mapper = new ObjectMapper();
+            mapper.writeValue(Paths.get(dirPath).toFile(), hashMapData);
+        } catch (Exception e) {
+            AppConfigException.logException("FileManager", "storeFile", e);
+            return false;
+        }
+        return true;
+    }
+
     /**
      * Read the data from the given file path.
      *

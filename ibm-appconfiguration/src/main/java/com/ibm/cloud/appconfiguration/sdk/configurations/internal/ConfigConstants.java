@@ -52,4 +52,5 @@ public class ConfigConstants {
     public static final String ENABLED_VALUE = "enabled_value";
     public static final String DISABLED_VALUE = "disabled_value";
     public static final String FORMAT = "format";
+    public static final String PERSISTENTCACHE_FILE = "appconfiguration.json";
 }
