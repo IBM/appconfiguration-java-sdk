@@ -1,1 +1,8 @@
-[]
+[
+  {
+    "cve": "SNYK-JAVA-ORGJETBRAINSKOTLIN-2393744",
+    "alwaysOmit": true,
+    "expiration": "2022-04-30T00:00:00+05:30",
+    "comment": "Package: org.jetbrains.kotlin:kotlin-stdlib dependency: sdk-core"
+  }
+]
