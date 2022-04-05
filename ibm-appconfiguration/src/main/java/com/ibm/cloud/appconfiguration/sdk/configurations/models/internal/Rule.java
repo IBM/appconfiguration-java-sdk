@@ -28,6 +28,7 @@ public class Rule {
     public String attributeName;
     public String operator;
     public JSONArray values;
+    private final String className = this.getClass().getName();
 
     /**
      * @param ruleJson JSON object containing rule information
@@ -39,7 +40,7 @@ public class Rule {
             this.operator = ruleJson.getString("operator");
             this.values = ruleJson.getJSONArray("values");
         } catch (Exception e) {
-            AppConfigException.logException("Rule", "Constructor", e, new Object[] { "Invalid action in Rule class."});
+            AppConfigException.logException(this.className, "Constructor", e, new Object[] { "Invalid action in Rule class."});
 
         }
     }
@@ -55,12 +56,13 @@ public class Rule {
 
         Boolean result = false;
         Object key;
+        String methodName = "evaluateRule";
 
         if (entityAttributes.has(this.attributeName)) {
             try {
                 key = entityAttributes.get(this.attributeName);
             } catch (Exception e) {
-                AppConfigException.logException(this.getClass().getName(), "evaluateRule", e);
+                AppConfigException.logException(this.className, methodName, e);
                 return result;
             }
         } else {
@@ -75,7 +77,7 @@ public class Rule {
                 }
 
             } catch (Exception e) {
-                AppConfigException.logException(this.getClass().getName(), "evaluateRule", e);
+                AppConfigException.logException(this.className, methodName, e);
                 return result;
             }
         }
@@ -111,7 +113,7 @@ public class Rule {
                     try {
                         result = value.toString().equals(key.toString());
                     } catch (Exception e) {
-                        AppConfigException.logException(this.getClass().getName(), "is", e);
+                        AppConfigException.logException(this.className, "is", e);
                     }
                 }
                 break;
@@ -161,7 +163,7 @@ public class Rule {
                 return new Conversions(true, keyValue);
             }
         } catch (Exception e) {
-            AppConfigException.logException(this.getClass().getName(), "numberConversion", e);
+            AppConfigException.logException(this.className, "numberConversion", e);
         }
         return new Conversions(false, Float.valueOf(0));
 

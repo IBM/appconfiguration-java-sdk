@@ -25,14 +25,14 @@ Instrument your applications with App Configuration Java SDK, and use the App Co
 <dependency>
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>0.2.3</version>
+    <version>0.2.4</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```sh
-implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.2.3'
+implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.2.4'
 ```
 
 ## Import the SDK
@@ -44,7 +44,7 @@ import com.ibm.cloud.appconfiguration.sdk.AppConfiguration;
 ## Initialize SDK
 
 ```java
-String region = "region";
+String region = AppConfiguration.REGION_US_SOUTH;
 String guid = "guid";
 String apikey = "apikey";
 
@@ -58,8 +58,8 @@ appConfigClient.setContext(collectionId, environmentId);
 :red_circle: **Important** :red_circle:
 
 The **`init()`** and **`setContext()`** are the initialisation methods and should be invoked **only once** using
-appConfigClient. The appConfigClient, once initialised, can be obtained across modules
-using **`AppConfiguration.getInstance()`**.  [See this example below](#fetching-the-appconfigclient-across-other-modules).
+appConfigClient. The appConfigClient, once initialised, can be obtained across classes.
+using **`AppConfiguration.getInstance()`**.  [See this example below](#fetching-the-appConfigClient-across-other-classes).
 
 - region : Region name where the service instance is created. Use
     - `AppConfiguration.REGION_US_SOUTH` for Dallas
@@ -92,16 +92,17 @@ Please ensure that the cache file is not lost or deleted in any case. For exampl
 
 
 ### (Optional)
-The SDK is also designed to serve configurations, perform feature flag & property evaluations without being connected to App Configuration service.
+The SDK is also designed to serve configurations, and perform feature flag & property evaluations without being connected to App Configuration service.
 
 ```java
 ConfigurationOptions configOptions = new ConfigurationOptions();
 configOptions.setBootstrapFile("saflights/flights.json");
 configOptions.setLiveConfigUpdateEnabled(false);
+appConfigClient.setContext(collectionId, environmentId, configOptions);
 ```
 
 - bootstrapFile: Absolute path of the JSON file, which contains configuration details. Make sure to provide a proper JSON file. You can generate this file using `ibmcloud ac config` command of the IBM Cloud App Configuration CLI.
-- liveConfigUpdateEnabled: Live configuration update from the server. Set this value to `false` if the new configuration values shouldn't be fetched from the server.
+- liveConfigUpdateEnabled: Live configuration update from the server. Set this value to `false` if the new configuration values must not be fetched from the server. By default, this value is set to `true`.
 
 
 ## Get single feature
@@ -109,7 +110,7 @@ configOptions.setLiveConfigUpdateEnabled(false);
 ```java
 Feature feature = appConfigClient.getFeature("online-check-in");
 
-if (feature) {
+if (feature != null) {
     System.out.println("Feature Name : " + feature.getFeatureName());
     System.out.println("Feature Id : " + feature.getFeatureId());
     System.out.println("Feature Type : " + feature.getFeatureDataType());
@@ -144,7 +145,7 @@ String value = (String) feature.getCurrentValue(entityId, entityAttributes);
 ```java
 Property property = appConfigClient.getProperty("check-in-charges");
 
-if (property) {
+if (property != null) {
     System.out.println("Property Name : " + property.getPropertyName());
     System.out.println("Property Id : " + property.getPropertyId());
     System.out.println("Property Type : " + property.getPropertyDataType());
@@ -173,12 +174,12 @@ entityAttributes.put("country", "India");
 String value = (String) property.getCurrentValue(entityId, entityAttributes);
 ```
 
-## Fetching the appConfigClient across other modules
+## Fetching the appConfigClient across other classes
 
-Once the SDK is initialized, the appConfigClient can be obtained across other modules as shown below:
+Once the SDK is initialized, the appConfigClient can be obtained across other classes as shown below:
 
 ```java
-// **other modules**
+// **other classes**
 
 import com.ibm.cloud.appconfiguration.sdk.AppConfiguration;
 AppConfiguration appConfigClient = AppConfiguration.getInstance();
@@ -242,9 +243,9 @@ if (feature != null) {
 ```java
 Property property = appConfigClient.getProperty("json-property");
 if (property != null) {
-    property.getPropertyDataType()     // STRING
-    property.getPropertyDataFormat()   // JSON
-    property.getCurrentValue(entityId, entityAttributes) // JSONObject or JSONArray is returned
+    property.getPropertyDataType();     // STRING
+    property.getPropertyDataFormat();   // JSON
+    property.getCurrentValue(entityId, entityAttributes); // JSONObject or JSONArray is returned
 
 }
 
@@ -263,9 +264,9 @@ String expected_output = (String) tar_val.get('role');
 
 Property property = appConfigClient.getProperty("yaml-property");
 if (property != null) {
-    property.getPropertyDataType()     // STRING
-    property.getPropertyDataFormat()   // YAML
-    property.getCurrentValue(entityId, entityAttributes) // Yaml String is returned
+    property.getPropertyDataType();     // STRING
+    property.getPropertyDataFormat();   // YAML
+    property.getCurrentValue(entityId, entityAttributes); // Yaml String is returned
 
 }
 ```

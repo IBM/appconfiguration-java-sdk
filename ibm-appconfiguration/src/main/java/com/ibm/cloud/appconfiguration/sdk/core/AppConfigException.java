@@ -46,6 +46,6 @@ public final class AppConfigException {
         for (int i = messageParams.length - 1; i >= 0; i--) {
             message += messageParams[i];
         }
-        BaseLogger.debug(message);
+        BaseLogger.error(message);
     }
 }

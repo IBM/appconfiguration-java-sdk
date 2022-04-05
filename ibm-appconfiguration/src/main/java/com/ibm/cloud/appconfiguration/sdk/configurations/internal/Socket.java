@@ -57,8 +57,12 @@ public class Socket extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        this.listener.onClose("Connection closed by " + (remote ? "remote peer" : "us") + " Code: " + code
-                                + " Reason: " + reason);
+        if (remote) {
+            this.listener.onClose("Connection closed by remote host. " + " Code: " + code + " Reason: " + reason);
+        } else {
+            // Don't to anything as it maybe the intentional close initiated by the client
+            BaseLogger.debug("Connection closed by client. " + " Code: " + code + " Reason: " + reason);
+        }
     }
 
     @Override

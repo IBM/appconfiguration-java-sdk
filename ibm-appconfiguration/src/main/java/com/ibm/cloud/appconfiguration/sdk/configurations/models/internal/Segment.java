@@ -29,6 +29,7 @@ public class Segment {
     String name;
     String segmentId;
     JSONArray rules;
+    private final String className = this.getClass().getName();
 
     /**
      * @param segmentJson segments JSON object that contains all the segments
@@ -40,7 +41,7 @@ public class Segment {
             this.rules = segmentJson.getJSONArray(ConfigConstants.RULES);
 
         } catch (Exception e) {
-            AppConfigException.logException(this.getClass().getName(), "Segment.init", e,
+            AppConfigException.logException(this.className, "Segment.init", e,
                                             new Object[] {"Invalid action in Segment class. "});
         }
     }
@@ -81,7 +82,7 @@ public class Segment {
                     return false;
                 }
             } catch (Exception e) {
-                AppConfigException.logException(this.getClass().getName(), "evaluateRule", e,
+                AppConfigException.logException(this.className, "evaluateRule", e,
                                                 new Object[] {"Invalid action in Segment class."});
             }
         }

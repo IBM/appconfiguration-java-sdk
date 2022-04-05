@@ -48,7 +48,7 @@ public class RetryHandler {
                 retryInterface.retryMethod();
             }
         };
-        this.retryTimer = new Timer();
+        this.retryTimer = new Timer(true);
         this.retryTimer.scheduleAtFixedRate(task, this.retryInterval, this.retryInterval);
     }
 

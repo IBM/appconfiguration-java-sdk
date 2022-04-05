@@ -77,6 +77,7 @@ public class ServiceImpl extends BaseService {
         ServiceImpl.overrideServerHost = overrideServerHost;
         IamAuthenticator iamAuthenticator = ServiceImpl.getIamAuthenticator();
         ServiceImpl service = new ServiceImpl(ConfigConstants.DEFAULT_SERVICE_NAME, iamAuthenticator);
+        service.enableRetries(CoreConstants.MAX_NO_OF_RETRIES, CoreConstants.MAX_RETRY_INTERVAL);
         service.configureService(ConfigConstants.DEFAULT_SERVICE_NAME);
         return service;
     }
@@ -155,18 +156,12 @@ public class ServiceImpl extends BaseService {
      * @return the HTTP response
      */
     public Response getConfig(String url) {
-        try {
-            RequestBuilder builder = RequestBuilder.get(RequestBuilder.resolveRequestUrl(url, null, null));
-            for (Map.Entry<String, String> header : this.getServiceHeaders().entrySet()) {
-                builder.header(header.getKey(), header.getValue());
-            }
-
-            ResponseConverter<String> responseConverter = ResponseConverterUtils.getString();
-            return createServiceCall(builder.build(), responseConverter).execute();
-        } catch (Exception e) {
-            BaseLogger.error(e.getLocalizedMessage());
+        RequestBuilder builder = RequestBuilder.get(RequestBuilder.resolveRequestUrl(url, null, null));
+        for (Map.Entry<String, String> header : this.getServiceHeaders().entrySet()) {
+            builder.header(header.getKey(), header.getValue());
         }
-        return null;
+        ResponseConverter<String> responseConverter = ResponseConverterUtils.getString();
+        return createServiceCall(builder.build(), responseConverter).execute();
     }
 
     /**
@@ -177,19 +172,13 @@ public class ServiceImpl extends BaseService {
      * @return the HTTP response
      */
     public Response postMetering(String meteringUrl, JSONObject data) {
-        try {
-            RequestBuilder builder = RequestBuilder.
-            post(RequestBuilder.resolveRequestUrl(meteringUrl, null, null));
-            for (Map.Entry<String, String> header : this.getServiceHeaders().entrySet()) {
-                builder.header(header.getKey(), header.getValue());
-            }
-            JsonObject jsonData = new Gson().fromJson(String.valueOf(data), JsonObject.class);
-            builder.bodyJson(jsonData);
-            ResponseConverter<String> responseConverter = ResponseConverterUtils.getString();
-            return createServiceCall(builder.build(), responseConverter).execute();
-        } catch (Exception e) {
-            BaseLogger.error(e.getLocalizedMessage());
+        RequestBuilder builder = RequestBuilder.post(RequestBuilder.resolveRequestUrl(meteringUrl, null, null));
+        for (Map.Entry<String, String> header : this.getServiceHeaders().entrySet()) {
+            builder.header(header.getKey(), header.getValue());
         }
-        return null;
+        JsonObject jsonData = new Gson().fromJson(String.valueOf(data), JsonObject.class);
+        builder.bodyJson(jsonData);
+        ResponseConverter<String> responseConverter = ResponseConverterUtils.getString();
+        return createServiceCall(builder.build(), responseConverter).execute();
     }
 }

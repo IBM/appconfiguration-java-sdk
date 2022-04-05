@@ -29,6 +29,7 @@ import java.util.HashMap;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -37,11 +38,15 @@ public class ServiceImplTest {
         assertNotEquals(ServiceImpl.getCurrentDateTime(), String.valueOf(Instant.now()),
             "These two values are not equal");
 
-        assertEquals("0.2.3", ServiceImpl.getVersion(), "version are same in pom.xml");
+        assertEquals("0.2.4", ServiceImpl.getVersion(), "version are same in pom.xml");
         assertEquals("appconfiguration-java-sdk", ServiceImpl.getArtifactId(), "Artifact Id are same");
 
         ServiceImpl test = ServiceImpl.getInstance("apikey", "test");
-        assertNull(test.getConfig("http://testConfig"));
-        assertNull(test.postMetering("http://testMetering", new JSONObject()));
+        assertThrows(Exception.class, () -> {
+            test.getConfig("http://testConfig");
+        });
+        assertThrows(Exception.class, () -> {
+            test.postMetering("http://testMetering", new JSONObject());
+        });
     }
 }

@@ -24,8 +24,14 @@ public class CoreConstants {
     private CoreConstants() { }
 
     public static final Integer REQUEST_SUCCESS_200 = 200;
+    public static final Integer REQUEST_SUCCESS_202 = 202;
     public static final Integer REQUEST_SUCCESS_299 = 299;
     public static final Integer REQUEST_ERROR_AUTH = 401;
     public static final Integer REQUEST_ERROR = 400;
+    public static final Integer TOO_MANY_REQUESTS = 429;
     public static final Integer REQUEST_ERROR_NOT_SUPPORTED = 405;
+    public static final Integer SERVER_ERROR_BEGIN = 500;
+    public static final Integer SERVER_ERROR_END = 599;
+    public static final Integer MAX_NO_OF_RETRIES = 3;
+    public static final Integer MAX_RETRY_INTERVAL = 30; // (in seconds) The maximum interval between two successive retry attempts
 }
