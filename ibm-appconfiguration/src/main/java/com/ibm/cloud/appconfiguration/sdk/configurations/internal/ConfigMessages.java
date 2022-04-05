@@ -40,4 +40,6 @@ public class ConfigMessages {
     public static final String CONFIG_API_ERROR = "Invalid configuration. Verify the collectionId, environmentId, apikey, guid and region.";
     public static final String FEATURE_INVALID = "Invalid featureId - ";
     public static final String PROPERTY_INVALID = "Invalid propertyId - ";
+    public static final String FETCH_API_SUCCESSFUL = "Successfully fetched the configurations.";
+    public static final String API_RETRY_SCHEDULED_MESSAGE = "Scheduled the API request to retry after 10 minutes.";
 }

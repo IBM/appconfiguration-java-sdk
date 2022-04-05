@@ -40,6 +40,7 @@ import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.Segment
 import com.ibm.cloud.sdk.core.http.HttpHeaders;
 import com.ibm.cloud.sdk.core.http.Response;
 import com.ibm.cloud.sdk.core.security.IamAuthenticator;
+import com.ibm.cloud.sdk.core.service.exception.ServiceResponseException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -53,7 +54,6 @@ public class ConfigurationHandler {
 
     private static ConfigurationHandler instance;
 
-    private int retryCount = 3;
     private String collectionId = "";
     private String environmentId = "";
     private String apikey = "";
@@ -77,6 +77,7 @@ public class ConfigurationHandler {
     private SocketHandler socketHandler;
     private Connectivity connectivity = null;
     private Boolean isNetWorkConnected = true;
+    private final String className = this.getClass().getName();
 
     /**
      * @return instance of {@link ConfigurationHandler}
@@ -135,9 +136,10 @@ public class ConfigurationHandler {
         Metering.getInstance().setMeteringUrl(URLBuilder.getMeteringUrl(guid), apikey);
         this.isInitialized = true;
 
-        // just to checks connectivity
         if (this.liveConfigUpdateEnabled) {
-            new Thread(() -> checkNetwork()).start();
+            // if live config update is enabled, start a daemon Timer thread that periodically checks the internet connectivity
+            connectivity = Connectivity.getInstance();
+            connectivity.addConnectivityListener(this::connectionHandler);
         }
         loadDataByConfiguration();
     }
@@ -182,7 +184,7 @@ public class ConfigurationHandler {
                 HashMap<String, Object> map = new ObjectMapper().readValue(data.toString(), HashMap.class);
                 FileManager.createAndStoreFile(map, persistentCacheDir);
             } catch (Exception e) {
-                AppConfigException.logException(this.getClass().getName(), " loadBootStrapFileAndPersistanceData", e);
+                AppConfigException.logException(this.className, " loadBootStrapFileAndPersistanceData", e);
             }
         }
         loadData();
@@ -195,6 +197,7 @@ public class ConfigurationHandler {
                 this.fetchConfigData();
             } else if (this.socket != null) {
                 this.socket.cancel();
+                this.socket = null;
             }
         } else {
             BaseLogger.debug(ConfigMessages.CONFIG_HANDLER_INIT_ERROR);
@@ -257,19 +260,6 @@ public class ConfigurationHandler {
         return null;
     }
 
-    private void checkNetwork() {
-
-        if (this.liveConfigUpdateEnabled) {
-            if (connectivity == null) {
-                connectivity = Connectivity.getInstance();
-                connectivity.addConnectivityListener(isConnected -> connectionHandler(isConnected));
-                connectivity.checkConnection();
-            }
-        } else {
-            connectivity = null;
-        }
-    }
-
     private void connectionHandler(Boolean isConnected) {
         if (!this.liveConfigUpdateEnabled) {
             connectivity = null;
@@ -293,9 +283,10 @@ public class ConfigurationHandler {
 
     private void initializeWebSocket() {
         if (this.isInitialized) {
-            this.retryCount = 3;
             this.onSocketRetry = false;
-            new Thread(() -> this.startWebSocket()).start();
+            Thread websocketThread = new Thread(() -> this.startWebSocket());
+            websocketThread.setDaemon(true);
+            websocketThread.start();
         }
     }
 
@@ -321,6 +312,8 @@ public class ConfigurationHandler {
 
     public void loadConfigurationsAndPopulateInMap(JSONObject data) {
 
+        String methodName = "loadConfigurationsAndPopulateInMap";
+
         if (!data.isEmpty()) {
             if (data.has(ConfigConstants.FEATURES)) {
                 this.featureMap = new HashMap<>();
@@ -332,7 +325,7 @@ public class ConfigurationHandler {
                         this.featureMap.put(feature.getFeatureId(), feature);
                     }
                 } catch (Exception e) {
-                    AppConfigException.logException(this.getClass().getName(), "loadConfigurations", e);
+                    AppConfigException.logException(this.className, methodName, e);
                 }
             }
 
@@ -346,7 +339,7 @@ public class ConfigurationHandler {
                         this.propertyMap.put(property.getPropertyId(), property);
                     }
                 } catch (Exception e) {
-                    AppConfigException.logException(this.getClass().getName(), "loadConfigurations", e);
+                    AppConfigException.logException(this.className, methodName, e);
                 }
             }
 
@@ -360,7 +353,7 @@ public class ConfigurationHandler {
                         this.segmentMap.put(segment.getSegmentId(), segment);
                     }
                 } catch (Exception e) {
-                    AppConfigException.logException(this.getClass().getName(), "loadConfigurations", e);
+                    AppConfigException.logException(this.className, methodName, e);
                 }
             }
         }
@@ -486,7 +479,7 @@ public class ConfigurationHandler {
                 }
             }
         } catch (Exception e) {
-            AppConfigException.logException(this.getClass().getName(), "RuleEvaluation", e);
+            AppConfigException.logException(this.className, "RuleEvaluation", e);
         }
         if (feature != null) {
             resultDict.put(ConfigConstants.VALUE, feature.getEnabledValue());
@@ -514,7 +507,7 @@ public class ConfigurationHandler {
                 SegmentRules segmentRules = new SegmentRules(rule);
                 ruleMap.put(segmentRules.getOrder(), segmentRules);
             } catch (Exception e) {
-                AppConfigException.logException(this.getClass().getName(), "parseRules", e);
+                AppConfigException.logException(this.className, "parseRules", e);
             }
         }
         return ruleMap;
@@ -522,41 +515,65 @@ public class ConfigurationHandler {
 
 
     private void fetchFromApi() {
+        String methodName = "fetchFromApi";
+        /*
+            2xx - Do not retry (Success)
+            3xx - Do not retry (Redirect)
+            4xx - Do not retry (Client errors)
+            429 - Retry ("Too Many Requests")
+            5xx - Retry (Server errors)
+
+            The imported package `com.ibm.cloud.sdk.core` is configured to retry the API request in case of failure.
+            Hence, we no need to write the retry logic again.
+            The API call gets retried within getConfig() for 3 times in an exponential interval(1s, 2s, 4s) between each retry.
+            If all the 3 retries fails, appropriate exceptions are raised.
+            For 429 error code - The getConfig() will retry the request 3 times in an interval of time mentioned in ["retry-after"] header.
+            If all the 3 retries exhausts the call is returned and appropriate exceptions are raised.
+
+            When all the above retries fails, we schedule our own Timer to retry after 10 minutes for the response status_codes [429 & 5xx].
+            All other status codes are not retried nor a retry is scheduled.
+            User has to take immediate action and resolve it themselves by looking at the error logs.
+         */
         if (this.isInitialized) {
             String url = URLBuilder.getConfigUrl();
-            this.retryCount -= 1;
+            Response response;
             try {
-                Response response = ServiceImpl.getInstance(apikey, overrideServerHost).getConfig(url);
-                if (response.getStatusCode() >= CoreConstants.REQUEST_SUCCESS_200
-                && response.getStatusCode() <= CoreConstants.REQUEST_SUCCESS_299) {
-                    try {
-                        if (configRetry != null) {
-                            configRetry.cancel();
-                            configRetry = null;
-                        }
-                        HashMap<String, Object> map = new ObjectMapper().readValue((String) response.getResult(),
-                        HashMap.class);
-
-                        JSONObject obj = new JSONObject(map);
-                        loadConfigurationsAndPopulateInMap(obj);
-                        if (this.persistentCacheLocation != null) {
-                            FileManager.createAndStoreFile(map, persistentCacheLocation);
-                        }
-
-                    } catch (Exception e) {
-                        AppConfigException.logException(this.getClass().getName(), "fetchFromApi", e);
-                    }
-                } else {
-                    BaseLogger.error(ConfigMessages.CONFIG_API_ERROR);
-                    if (retryCount > 0) {
-                        fetchFromApi();
-                    } else {
-                        retryCount = 3;
-                        startConfigRetryTimer();
-                    }
+                response = ServiceImpl.getInstance(apikey, overrideServerHost).getConfig(url);
+            } catch (ServiceResponseException e) {
+                BaseLogger.error("Exception occurred while fetching configurations. Status code:" + e.getStatusCode() + " message: " + e.getMessage());
+                if (e.getStatusCode() == CoreConstants.TOO_MANY_REQUESTS || (e.getStatusCode() >= CoreConstants.SERVER_ERROR_BEGIN && e.getStatusCode() <= CoreConstants.SERVER_ERROR_END)) {
+                    BaseLogger.info(ConfigMessages.API_RETRY_SCHEDULED_MESSAGE);
+                    startConfigRetryTimer();
                 }
+                return;
             } catch (Exception e) {
-                BaseLogger.error("Response Object is " + e.getLocalizedMessage());
+                AppConfigException.logException(this.className, methodName, e);
+                BaseLogger.info(ConfigMessages.API_RETRY_SCHEDULED_MESSAGE);
+                startConfigRetryTimer();
+                return;
+            }
+
+            // API request was successful
+            if (response.getStatusCode() == CoreConstants.REQUEST_SUCCESS_200) {
+                BaseLogger.debug(ConfigMessages.FETCH_API_SUCCESSFUL);
+                try {
+                    if (configRetry != null) {
+                        configRetry.cancel();
+                        configRetry = null;
+                    }
+                    HashMap<String, Object> map = new ObjectMapper().readValue((String) response.getResult(),
+                            HashMap.class);
+                    JSONObject obj = new JSONObject(map);
+                    loadConfigurationsAndPopulateInMap(obj);
+                    if (this.persistentCacheLocation != null) {
+                        FileManager.createAndStoreFile(map, persistentCacheLocation);
+                    }
+                } catch (Exception e) {
+                    AppConfigException.logException(this.className, methodName, e);
+                }
+            } else {
+                // rare or impossible case
+                BaseLogger.error("Failed to fetch configurations. " + response.getResult());
             }
         } else {
             BaseLogger.debug(ConfigMessages.CONFIG_HANDLER_INIT_ERROR);
@@ -617,26 +634,27 @@ public class ConfigurationHandler {
                         socketRetry.cancel();
                         socketRetry = null;
                     }
-                    BaseLogger.debug("Received opened connection from socket");
+                    BaseLogger.debug("Received opened connection from socket.");
                 }
 
                 @Override
                 public void onMessage(String message) {
                     fetchFromApi();
                     updatedConfiguration();
-                    BaseLogger.debug("Received message from socket " + message);
+                    BaseLogger.debug("Received message from socket. " + message);
                 }
 
                 @Override
                 public void onClose(String closeMessage) {
-                    BaseLogger.debug("Received close connection from socket");
+                    BaseLogger.debug("Received close connection from socket. " + closeMessage);
                     onSocketRetry = true;
                     startSocketRetryTimer();
                 }
 
                 @Override
                 public void onError(Exception e) {
-                    BaseLogger.debug("Received error from socket " + e.toString());
+                    BaseLogger.error("Received error from socket. " + e.toString());
+                    onSocketRetry = true;
                     startSocketRetryTimer();
                 }
             };

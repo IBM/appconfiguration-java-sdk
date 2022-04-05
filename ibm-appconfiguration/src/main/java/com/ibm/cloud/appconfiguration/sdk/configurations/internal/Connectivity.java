@@ -30,10 +30,12 @@ public class Connectivity {
 
     private static Connectivity instance;
     private List<ConnectivityListener> listeners = new ArrayList<>();
+    private final String className = this.getClass().getName();
 
     public static synchronized Connectivity getInstance() {
         if (instance == null) {
             instance = new Connectivity();
+            instance.checkConnection();
             instance.start();
         }
         return instance;
@@ -58,20 +60,21 @@ public class Connectivity {
      * Check the internet connection by making ping to <a href="https://cloud.ibm.com">https://cloud.ibm.com</a>.
      */
     public void checkConnection() {
-        Boolean connected = false;
+        boolean connected = false;
         Socket socket = new Socket();
+        String methodName = "checkConnection";
         try {
             InetSocketAddress address = new InetSocketAddress("cloud.ibm.com", 80);
-            socket.connect(address, 500);
+            socket.connect(address, 5000);
             connected = socket.isConnected();
         } catch (Exception e) {
-            AppConfigException.logException(this.getClass().getName(), "checkConnection", e,
+            AppConfigException.logException(this.className, methodName, e,
                                             new Object[] {"Exception in checking network connection."});
         } finally {
             try {
                 socket.close();
             } catch (Exception e) {
-                AppConfigException.logException(this.getClass().getName(), "checkConnection", e,
+                AppConfigException.logException(this.className, methodName, e,
                                                 new Object[] {"Exception in closing network connection."});
             }
         }

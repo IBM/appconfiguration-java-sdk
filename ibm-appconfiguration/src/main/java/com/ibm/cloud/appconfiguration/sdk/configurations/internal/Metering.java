@@ -16,15 +16,19 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
+import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
 import com.ibm.cloud.appconfiguration.sdk.core.ServiceImpl;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
 import com.ibm.cloud.appconfiguration.sdk.core.CoreConstants;
 
 import com.ibm.cloud.sdk.core.http.Response;
+import com.ibm.cloud.sdk.core.service.exception.ServiceResponseException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.HashMap;
+import java.util.Timer;
+import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
 import static com.ibm.cloud.appconfiguration.sdk.AppConfiguration.overrideServerHost;
@@ -36,7 +40,7 @@ import static com.ibm.cloud.appconfiguration.sdk.AppConfiguration.overrideServer
 public class Metering {
 
     private static Metering instance;
-    private int sendInterval = 600000;
+    private final int sendInterval = 600000;
     private String meteringUrl = null;
     private String apikey = null;
 
@@ -89,7 +93,7 @@ public class Metering {
      */
     public synchronized void addMetering(String guid, String environmentId, String collectionId, String entityId,
                                         String segmentId, String featureId, String propertyId) {
-        Boolean hasData = false;
+        boolean hasData = false;
         HashMap<String, Object> featureJson = new HashMap();
         featureJson.put(ConfigConstants.COUNT, 1);
         String currentDateTime = ServiceImpl.getCurrentDateTime();
@@ -251,9 +255,8 @@ public class Metering {
 
         JSONArray subUsagesArray = data.getJSONArray(ConfigConstants.USAGES);
 
-        while (lim <= count) {
-            int endIndex = lim + ConfigConstants.DEFAULT_USAGE_LIMIT >= count ? count
-                : lim + ConfigConstants.DEFAULT_USAGE_LIMIT;
+        while (lim < count) {
+            int endIndex = Math.min(lim + ConfigConstants.DEFAULT_USAGE_LIMIT, count);
             JSONObject collectionsMap = new JSONObject();
             collectionsMap.put(ConfigConstants.COLLECTION_ID, data.getString(ConfigConstants.COLLECTION_ID));
             collectionsMap.put(ConfigConstants.ENVIRONMENT_ID, data.getString(ConfigConstants.ENVIRONMENT_ID));
@@ -268,19 +271,34 @@ public class Metering {
     }
 
     private void sendToServer(JSONObject data) {
+        Response response;
         try {
-            Response response =
-                ServiceImpl.getInstance(this.apikey, overrideServerHost).postMetering(this.meteringUrl, data);
-            if (response.getStatusCode() >= CoreConstants.REQUEST_SUCCESS_200
-            && response.getStatusCode() <= CoreConstants.REQUEST_SUCCESS_299) {
-                BaseLogger.debug("Successfully pushed the data to metering");
-            } else {
-                BaseLogger.error("Error while sending the metering data. Status code is : " + response.getStatusCode()
-                + ". Response " + "body: " + response.getResult().toString());
-                BaseLogger.debug(response.getResult().toString());
+            response = ServiceImpl.getInstance(this.apikey, overrideServerHost).postMetering(this.meteringUrl, data);
+            if (response.getStatusCode() == CoreConstants.REQUEST_SUCCESS_202) {
+                BaseLogger.debug("Successfully pushed the metering data.");
+            }
+        } catch (ServiceResponseException e) {
+            BaseLogger.error("Exception occurred while sending metering data to server. Status code:" + e.getStatusCode() + " message: " + e.getMessage());
+            if (e.getStatusCode() == CoreConstants.TOO_MANY_REQUESTS || (e.getStatusCode() >= CoreConstants.SERVER_ERROR_BEGIN && e.getStatusCode() <= CoreConstants.SERVER_ERROR_END)) {
+                Timer timer = new Timer(true);
+                timer.schedule(new TimerTask() {
+                    @Override
+                    public void run() {
+                        sendToServer(data);
+                        timer.cancel();
+                    }
+                }, sendInterval);
             }
         } catch (Exception e) {
-            BaseLogger.error("Response object is " + e.getLocalizedMessage());
+            AppConfigException.logException(this.getClass().getName(), "sendToServer", e);
+            Timer timer = new Timer(true);
+            timer.schedule(new TimerTask() {
+                @Override
+                public void run() {
+                    sendToServer(data);
+                    timer.cancel();
+                }
+            }, sendInterval);
         }
     }
 }
