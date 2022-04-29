@@ -40,7 +40,7 @@ public class Rule {
             this.operator = ruleJson.getString("operator");
             this.values = ruleJson.getJSONArray("values");
         } catch (Exception e) {
-            AppConfigException.logException(this.className, "Constructor", e, new Object[] { "Invalid action in Rule class."});
+            AppConfigException.logException(this.className, "Constructor", e, new Object[]{"Invalid action in Rule class."});
 
         }
     }
@@ -108,7 +108,7 @@ public class Rule {
                 break;
             case "is":
                 if (key.getClass().equals(value.getClass())) {
-                    result =  key.equals(value);
+                    result = key.equals(value);
                 } else {
                     try {
                         result = value.toString().equals(key.toString());
@@ -118,8 +118,8 @@ public class Rule {
                 }
                 break;
             case "greaterThan":
-                 keyVal = this.numberConversion(key);
-                 valueVal = this.numberConversion(value);
+                keyVal = this.numberConversion(key);
+                valueVal = this.numberConversion(value);
 
                 if (keyVal.isNumber && valueVal.isNumber) {
                     result = keyVal.value > valueVal.value;

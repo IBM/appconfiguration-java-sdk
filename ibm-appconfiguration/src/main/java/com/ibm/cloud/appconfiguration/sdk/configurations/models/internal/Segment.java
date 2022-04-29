@@ -42,7 +42,7 @@ public class Segment {
 
         } catch (Exception e) {
             AppConfigException.logException(this.className, "Segment.init", e,
-                                            new Object[] {"Invalid action in Segment class. "});
+                    new Object[]{"Invalid action in Segment class. "});
         }
     }
 
@@ -83,7 +83,7 @@ public class Segment {
                 }
             } catch (Exception e) {
                 AppConfigException.logException(this.className, "evaluateRule", e,
-                                                new Object[] {"Invalid action in Segment class."});
+                        new Object[]{"Invalid action in Segment class."});
             }
         }
         return true;

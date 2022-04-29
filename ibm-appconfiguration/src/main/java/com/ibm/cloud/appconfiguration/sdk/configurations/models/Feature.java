@@ -16,13 +16,16 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.models;
 
+import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
-import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
-import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
 import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.util.HashMap;
+
 
 /**
  * Feature class.
@@ -37,6 +40,7 @@ public class Feature {
     private String format;
     private Object disabledValue;
     private Object enabledValue;
+    private Integer rolloutPercentage;
 
     /**
      * @param featureData features JSON object that contains all the features
@@ -52,22 +56,22 @@ public class Feature {
             this.format = featureData.optString(ConfigConstants.FORMAT, null);
             this.disabledValue = featureData.get(ConfigConstants.DISABLED_VALUE);
             this.enabledValue = featureData.get(ConfigConstants.ENABLED_VALUE);
-
+            if (featureData.has(ConfigConstants.ROLLOUT_PERCENTAGE)) {
+                this.rolloutPercentage = featureData.getInt(ConfigConstants.ROLLOUT_PERCENTAGE);
+            } else {
+                this.rolloutPercentage = ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE;
+            }
         } catch (Exception e) {
             AppConfigException.logException("Feature", "Constructor", e, new Object[]{"Invalid action in Feature class."});
         }
     }
 
     /**
-     * Return the enabled status of the feature.
+     * Return the state of the feature flag. Returns true, if the feature flag is enabled, otherwise returns false.
      *
      * @return {@code true} or {@code false}
      */
     public Boolean isEnabled() {
-
-        ConfigurationHandler configurationHandler = ConfigurationHandler.getInstance();
-        configurationHandler.recordValuation(this.featureId, null, ConfigConstants.DEFAULT_ENTITY_ID,
-                ConfigConstants.DEFAULT_SEGMENT_ID);
         return this.enabled;
     }
 
@@ -138,11 +142,27 @@ public class Feature {
     }
 
     /**
+     * Get the Feature rolloutPercentage.
+     *
+     * @return the feature rolloutPercentage
+     */
+    public Integer getRolloutPercentage() {
+        return rolloutPercentage;
+    }
+
+    /**
      * Get the evaluated value of the feature.
      *
-     * @param entityId id of the entity
-     * @param entityAttributes entity attributes JSON object
-     * @return evaluated value
+     * @param entityId         Id of the Entity.
+     *                         This will be a string identifier related to the Entity against which the feature is evaluated.
+     *                         For example, an entity might be an instance of an app that runs on a mobile device, a microservice that runs on the cloud, or a component of infrastructure that runs that microservice.
+     *                         For any entity to interact with App Configuration, it must provide a unique entity ID.
+     * @param entityAttributes A JSON object consisting of the attribute name and their values that defines the specified entity.
+     *                         This is an optional parameter if the feature flag is not configured with any targeting definition. If the targeting is configured,
+     *                         then entityAttributes should be provided for the rule evaluation.
+     *                         An attribute is a parameter that is used to define a segment. The SDK uses the attribute values to determine if the
+     *                         specified entity satisfies the targeting rules, and returns the appropriate feature flag value.
+     * @return {boolean|string|number|null} Returns one of the Enabled/Disabled/Overridden value based on the evaluation.
      */
     public Object getCurrentValue(String entityId, JSONObject entityAttributes) {
 
@@ -151,7 +171,12 @@ public class Feature {
             return null;
         }
         ConfigurationHandler configurationHandler = ConfigurationHandler.getInstance();
-        return configurationHandler.featureEvaluation(this, this.enabled, entityId, entityAttributes);
+        HashMap<String, Object> map = configurationHandler.featureEvaluation(this, entityId, entityAttributes);
+        Object res = map.get(ConfigConstants.CURRENT_VALUE);
+        return res;
+    }
 
+    public Object getCurrentValue(String entityId) {
+        return getCurrentValue(entityId, null);
     }
 }

@@ -6,11 +6,13 @@
 
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>0.2.4</version>
+    <version>0.3.0</version>
     <packaging>jar</packaging>
 
     <name>IBM Cloud App Configuration Java server SDK</name>
-    <description>IBM Cloud App Configuration SDK is used to perform feature evaluation based on the configuration on IBM Cloud App Configuration service.</description>
+    <description>IBM Cloud App Configuration SDK is used to perform feature evaluation based on the configuration on IBM
+        Cloud App Configuration service.
+    </description>
     <url>https://www.github.com/IBM/appconfiguration-java-sdk</url>
 
 
@@ -61,6 +63,7 @@
             <artifactId>jackson-core</artifactId>
             <version>2.13.1</version>
         </dependency>
+
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
             <artifactId>jackson-databind</artifactId>
@@ -77,7 +80,12 @@
             <artifactId>sdk-core</artifactId>
             <version>9.16.1</version>
         </dependency>
-      </dependencies>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.15</version>
+        </dependency>
+    </dependencies>
 
     <properties>
         <maven.compiler.source>8</maven.compiler.source>
@@ -141,11 +149,11 @@
                 <version>1.5</version>
                 <executions>
                     <execution>
-                    <id>sign-artifacts</id>
-                    <phase>verify</phase>
-                    <goals>
-                        <goal>sign</goal>
-                    </goals>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
                     </execution>
                 </executions>
             </plugin>
@@ -166,7 +174,7 @@
                 <artifactId>maven-site-plugin</artifactId>
                 <version>${maven-site-plugin-version}</version>
             </plugin>
-             <plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-checkstyle-plugin</artifactId>
                 <version>${checkstyle-plugin-version}</version>
@@ -210,17 +218,17 @@
     <reporting>
         <plugins>
             <plugin>
-				<groupId>org.apache.maven.plugins</groupId>
+                <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-javadoc-plugin</artifactId>
                 <version>${maven-javadoc-plugin-version}</version>
             </plugin>
             <plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-checkstyle-plugin</artifactId>
-				<configuration>
-					<configLocation>${checkstyle.location}</configLocation>
-				</configuration>
-			</plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-checkstyle-plugin</artifactId>
+                <configuration>
+                    <configLocation>${checkstyle.location}</configLocation>
+                </configuration>
+            </plugin>
             <plugin>
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>

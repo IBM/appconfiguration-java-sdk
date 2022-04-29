@@ -18,7 +18,10 @@ package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
 public interface SocketHandler {
     void onOpen(String openMessage);
+
     void onMessage(String message);
+
     void onClose(String closeMessage);
+
     void onError(Exception e);
 }

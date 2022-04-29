@@ -25,14 +25,14 @@ Instrument your applications with App Configuration Java SDK, and use the App Co
 <dependency>
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>0.2.4</version>
+    <version>0.3.0</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```sh
-implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.2.4'
+implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.3.0'
 ```
 
 ## Import the SDK
@@ -87,7 +87,7 @@ In order for your application and SDK to continue its operations even during the
 - persistentCacheDirectory: Absolute path to a directory which has read & write permission for the user. The SDK will create a file - appconfiguration.json in the specified directory, and it will be used as the persistent cache to store the App Configuration service information.
 
 When persistent cache is enabled, the SDK will keep the last known good configuration at the persistent cache. In the case of App Configuration server being unreachable, the latest configurations at the persistent cache is loaded to the application to continue working.
-    
+
 Please ensure that the cache file is not lost or deleted in any case. For example, consider the case when a kubernetes pod is restarted and the cache file (appconfiguration.json) was stored in ephemeral volume of the pod. As pod gets restarted, kubernetes destroys the ephermal volume in the pod, as a result the cache file gets deleted. So, make sure that the cache file created by the SDK is always stored in persistent volume by providing the correct absolute path of the persistent directory.
 
 
@@ -114,7 +114,7 @@ if (feature != null) {
     System.out.println("Feature Name : " + feature.getFeatureName());
     System.out.println("Feature Id : " + feature.getFeatureId());
     System.out.println("Feature Type : " + feature.getFeatureDataType());
-    System.out.println("Feature is enabled : " + feature.isEnabled());
+    System.out.println("Is feature enabled? : " + feature.isEnabled());
 }
 ```
 
@@ -126,12 +126,10 @@ HashMap<String, Feature> features = appConfigClient.getFeatures();
 
 ## Evaluate a feature
 
-You can use the feature.getCurrentValue(entityId, entityAttributes) method to evaluate the value of the feature flag.
-
-You should pass an unique entityId as the parameter to perform the feature flag evaluation. If the feature flag is configured with segments in the App Configuration service, you can set the attributes values as a JSONObject.
+Use the feature.getCurrentValue(entityId, entityAttributes) method to evaluate the value of the feature flag. This
+method returns one of the Enabled/Disabled/Overridden value based on the evaluation.
 
 ```java
-
 String entityId = "john_doe";
 JSONObject entityAttributes = new JSONObject();
 entityAttributes.put("city", "Bangalore");
@@ -139,6 +137,16 @@ entityAttributes.put("country", "India");
 
 String value = (String) feature.getCurrentValue(entityId, entityAttributes);
 ```
+
+* entityId: Id of the Entity. This will be a string identifier related to the Entity against which the feature is
+  evaluated. For example, an entity might be an instance of an app that runs on a mobile device, a microservice that
+  runs on the cloud, or a component of infrastructure that runs that microservice. For any entity to interact with App
+  Configuration, it must provide a unique entity ID.
+* entityAttributes: A JSON object consisting of the attribute name and their values that defines the specified entity.
+  This is an optional parameter if the feature flag is not configured with any targeting definition. If the targeting is
+  configured, then entityAttributes should be provided for the rule evaluation. An attribute is a parameter that is used
+  to define a segment. The SDK uses the attribute values to determine if the specified entity satisfies the targeting
+  rules, and returns the appropriate feature flag value.
 
 ## Get single property
 
@@ -160,12 +168,10 @@ HashMap<String, Property> property = appConfigClient.getProperties();
 
 ## Evaluate a property
 
-You can use the property.getCurrentValue(entityId, entityAttributes) method to evaluate the value of the property.
-
-You should pass an unique entityId as the parameter to perform the property evaluation. If the property is configured with segments in the App Configuration service, you can set the attributes values as a JSONObject.
+Use the property.getCurrentValue(entityId, entityAttributes) method to evaluate the value of the property. This method
+returns the default property value or its overridden value based on the evaluation.
 
 ```java
-
 String entityId = "john_doe";
 JSONObject entityAttributes = new JSONObject();
 entityAttributes.put("city", "Bangalore");
@@ -173,6 +179,15 @@ entityAttributes.put("country", "India");
 
 String value = (String) property.getCurrentValue(entityId, entityAttributes);
 ```
+* entityId: Id of the Entity. This will be a string identifier related to the Entity against which the property is
+  evaluated. For example, an entity might be an instance of an app that runs on a mobile device, a microservice that
+  runs on the cloud, or a component of infrastructure that runs that microservice. For any entity to interact with App
+  Configuration, it must provide a unique entity ID.
+* entityAttributes: A JSON object consisting of the attribute name and their values that defines the specified entity.
+  This is an optional parameter if the property is not configured with any targeting definition. If the targeting is
+  configured, then entityAttributes should be provided for the rule evaluation. An attribute is a parameter that is used
+  to define a segment. The SDK uses the attribute values to determine if the specified entity satisfies the targeting
+  rules, and returns the appropriate property value.
 
 ## Fetching the appConfigClient across other classes
 

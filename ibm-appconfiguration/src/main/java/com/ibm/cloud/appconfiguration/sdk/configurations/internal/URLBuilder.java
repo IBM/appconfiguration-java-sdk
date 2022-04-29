@@ -26,35 +26,36 @@ public class URLBuilder {
     private static final String service = "/apprapp";
     private static final String events = "/events/v1/instances/";
     private static final String config = "config";
-    private static String overrideServerHost = null;
+    private static String overrideServiceUrl = null;
     private static String region = "";
     private static String httpBase = "";
     private static String webSocketBase = "";
 
-    private URLBuilder() { }
+    private URLBuilder() {
+    }
 
     /**
      * @param collectionId collection id
      * @param environmentId environment id
      * @param region region name of App Configuration service instance
      * @param guid guid of App Configuration service instance
-     * @param overrideServerHost server host. Use for testing purpose
+     * @param overrideServiceUrl service url. Use for testing purpose
      */
     public static void initWithContext(String collectionId, String environmentId, String region,
-                                        String guid, String overrideServerHost) {
+                                       String guid, String overrideServiceUrl) {
 
         if (Validators.validateString(collectionId) && Validators.validateString(environmentId)
-            && Validators.validateString(region) && Validators.validateString(guid)) {
+                && Validators.validateString(region) && Validators.validateString(guid)) {
 
             URLBuilder.region = region;
-            URLBuilder.overrideServerHost = overrideServerHost;
+            URLBuilder.overrideServiceUrl = overrideServiceUrl;
 
             webSocketBase = ConfigConstants.DEFAULT_WSS_TYPE;
             httpBase = ConfigConstants.DEFAULT_HTTP_TYPE;
 
-            if (Validators.validateString(overrideServerHost)) {
-                httpBase = overrideServerHost;
-                webSocketBase += (overrideServerHost.replace("https://", "").replace("http://", ""));
+            if (Validators.validateString(overrideServiceUrl)) {
+                httpBase = overrideServiceUrl;
+                webSocketBase += (overrideServiceUrl.replace("https://", "").replace("http://", ""));
             } else {
                 httpBase += region;
                 httpBase += ConfigConstants.DEFAULT_BASE_URL;
@@ -63,9 +64,9 @@ public class URLBuilder {
             }
 
             httpBase += String.format("%s%s%s/collections/%s/%s?environment_id=%s", service, path, guid,
-                                        collectionId, config, environmentId);
+                    collectionId, config, environmentId);
             webSocketBase += String.format("%s%s?instance_id=%s&collection_id=%s&environment_id=%s", service,
-                                            wsUrl, guid, collectionId, environmentId);
+                    wsUrl, guid, collectionId, environmentId);
         }
     }
 
@@ -95,8 +96,8 @@ public class URLBuilder {
      */
     public static String getMeteringUrl(String guid) {
         String base = ConfigConstants.DEFAULT_HTTP_TYPE;
-        if (Validators.validateString(overrideServerHost)) {
-            base = overrideServerHost + service;
+        if (Validators.validateString(overrideServiceUrl)) {
+            base = overrideServiceUrl + service;
         } else {
             base += region + ConfigConstants.DEFAULT_BASE_URL + service;
         }

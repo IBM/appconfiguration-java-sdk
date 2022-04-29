@@ -41,6 +41,8 @@ import com.ibm.cloud.sdk.core.http.HttpHeaders;
 import com.ibm.cloud.sdk.core.http.Response;
 import com.ibm.cloud.sdk.core.security.IamAuthenticator;
 import com.ibm.cloud.sdk.core.service.exception.ServiceResponseException;
+
+import org.apache.commons.codec.digest.MurmurHash3;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
@@ -67,7 +69,7 @@ public class ConfigurationHandler {
     private Boolean liveConfigUpdateEnabled = true;
     private String bootstrapFile = null;
     private Boolean onSocketRetry = false;
-    private String overrideServerHost = null;
+    private String overrideServiceUrl = null;
     private String persistentCacheLocation = null;
 
     private RetryHandler configRetry;
@@ -98,13 +100,13 @@ public class ConfigurationHandler {
      * @param apikey apikey of App Configuration service instance
      * @param guid guid/instanceId of App Configuration service instance
      * @param region region name of App Configuration service instance
-     * @param overrideServerHost server host. Use for testing purpose
+     * @param overrideServiceUrl service url. Use for testing purpose
      */
-    public void init(String apikey, String guid, String region, String overrideServerHost) {
+    public void init(String apikey, String guid, String region, String overrideServiceUrl) {
         this.apikey = apikey;
         this.guid = guid;
         this.region = region;
-        this.overrideServerHost = overrideServerHost;
+        this.overrideServiceUrl = overrideServiceUrl;
 
         this.featureMap = new HashMap<>();
         this.propertyMap = new HashMap<>();
@@ -132,7 +134,7 @@ public class ConfigurationHandler {
         }
         this.collectionId = collectionId;
         this.environmentId = environmentId;
-        URLBuilder.initWithContext(collectionId, environmentId, region, guid, overrideServerHost);
+        URLBuilder.initWithContext(collectionId, environmentId, region, guid, overrideServiceUrl);
         Metering.getInstance().setMeteringUrl(URLBuilder.getMeteringUrl(guid), apikey);
         this.isInitialized = true;
 
@@ -295,7 +297,7 @@ public class ConfigurationHandler {
             IamAuthenticator iamAuthenticator = ServiceImpl.getIamAuthenticator();
             Map<String, String> headers = new HashMap<>();
             headers.put(HttpHeaders.AUTHORIZATION,
-            iamAuthenticator.requestToken().getTokenType() + " " + iamAuthenticator.getToken());
+                    iamAuthenticator.requestToken().getTokenType() + " " + iamAuthenticator.getToken());
 
             if (this.socket != null) {
                 this.socket.cancel();
@@ -371,7 +373,7 @@ public class ConfigurationHandler {
     public void recordValuation(String featureId, String propertyId, String entityId, String segmentId) {
 
         Metering.getInstance().addMetering(guid, environmentId,
-            collectionId, entityId, segmentId, featureId, propertyId);
+                collectionId, entityId, segmentId, featureId, propertyId);
     }
 
     /**
@@ -388,21 +390,17 @@ public class ConfigurationHandler {
         resultDict.put(ConfigConstants.VALUE, new Object());
 
         try {
-            if (entityAttributes == null || entityAttributes.isEmpty()) {
-                return property.getValue();
-            }
             JSONArray segmentRules = property.getSegmentRules();
-            if (segmentRules.length() > 0) {
+            if (segmentRules.length() > 0 && entityAttributes != null && !entityAttributes.isEmpty()) {
                 Map<Integer, SegmentRules> rulesMap = this.parseRules(segmentRules);
-                resultDict = evaluateRules(rulesMap, entityAttributes, null, property);
+                resultDict = evaluateRules(rulesMap, entityAttributes, null, property, null);
                 return resultDict.get(ConfigConstants.VALUE);
-            } else {
-                return property.getValue();
             }
+            return property.getValue();
         } finally {
             String propertyId = property.getPropertyId();
             this.recordValuation(null, propertyId, entityId,
-                resultDict.getString(ConfigConstants.EVALUATED_SEGMENT_ID));
+                    resultDict.getString(ConfigConstants.EVALUATED_SEGMENT_ID));
         }
     }
 
@@ -410,52 +408,59 @@ public class ConfigurationHandler {
      * Feature evaluation.
      *
      * @param feature feature object
-     * @param isEnabled feature object's "enabled" value (true/false)
      * @param entityId entity id
      * @param entityAttributes entity attributes JSON object
-     * @return feature evaluated value
+     * @return feature evaluated value in map
      */
-    public Object featureEvaluation(Feature feature, Boolean isEnabled, String entityId, JSONObject entityAttributes) {
+    public HashMap<String, Object> featureEvaluation(Feature feature, String entityId, JSONObject entityAttributes) {
 
         JSONObject resultDict = new JSONObject();
         resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, ConfigConstants.DEFAULT_SEGMENT_ID);
         resultDict.put(ConfigConstants.VALUE, new Object());
-
+        HashMap<String, Object> map = new HashMap<String, Object>();
         try {
-            if (isEnabled) {
-                if (entityAttributes == null || entityAttributes.isEmpty()) {
-                    return feature.getEnabledValue();
-                }
+            if (feature.isEnabled()) {
                 JSONArray segmentRules = feature.getSegmentRules();
-                if (segmentRules.length() > 0) {
+                if (segmentRules.length() > 0 && entityAttributes != null && !entityAttributes.isEmpty()) {
                     Map<Integer, SegmentRules> rulesMap = this.parseRules(segmentRules);
-                    resultDict = evaluateRules(rulesMap, entityAttributes, feature, null);
-                    return resultDict.get(ConfigConstants.VALUE);
-                } else {
-                    return feature.getEnabledValue();
+                    resultDict = evaluateRules(rulesMap, entityAttributes, feature, null, entityId);
+                    map.put(ConfigConstants.CURRENT_VALUE, resultDict.get(ConfigConstants.VALUE));
+                    map.put(ConfigConstants.IS_ENABLED, resultDict.get(ConfigConstants.FEATURE_ENABLED));
+                    return map;
                 }
+                int hashResult = calculateMurmurHash(entityId, feature.getFeatureId());
+                if (feature.getRolloutPercentage() == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE || hashResult < feature.getRolloutPercentage()) {
+                    map.put(ConfigConstants.CURRENT_VALUE, feature.getEnabledValue());
+                    map.put(ConfigConstants.IS_ENABLED, true);
+                    return map;
+                }
+                map.put(ConfigConstants.CURRENT_VALUE, feature.getDisabledValue());
+                map.put(ConfigConstants.IS_ENABLED, false);
+                return map;
             } else {
-                return feature.getDisabledValue();
+                map.put(ConfigConstants.CURRENT_VALUE, feature.getDisabledValue());
+                map.put(ConfigConstants.IS_ENABLED, false);
+                return map;
             }
         } finally {
             String featureId = feature.getFeatureId();
             this.recordValuation(featureId, null, entityId,
-                resultDict.getString(ConfigConstants.EVALUATED_SEGMENT_ID));
+                    resultDict.getString(ConfigConstants.EVALUATED_SEGMENT_ID));
         }
     }
 
     private JSONObject evaluateRules(Map<Integer, SegmentRules> rulesMap, JSONObject entityAttributes,
-                                    Feature feature, Property property) {
+                                     Feature feature, Property property, String entityId) {
 
         JSONObject resultDict = new JSONObject();
         resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, ConfigConstants.DEFAULT_SEGMENT_ID);
         resultDict.put(ConfigConstants.VALUE, new Object());
-
         try {
             for (int i = 1; i <= rulesMap.size(); i++) {
 
                 SegmentRules segmentRule = rulesMap.get(i);
                 if (segmentRule != null) {
+
                     for (int level = 0; level < segmentRule.getRules().length(); level++) {
                         JSONObject rule = segmentRule.getRules().getJSONObject(level);
                         JSONArray segments = rule.getJSONArray(ConfigConstants.SEGMENTS);
@@ -463,14 +468,29 @@ public class ConfigurationHandler {
                             String segmentKey = segments.getString(innerLevel);
                             if (this.evaluateSegment(segmentKey, entityAttributes)) {
                                 resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, segmentKey);
-                                if (segmentRule.getValue().equals("$default")) {
-                                    if (feature != null) {
-                                        resultDict.put(ConfigConstants.VALUE, feature.getEnabledValue());
+                                if (feature != null) {
+                                    int rolloutPercentage = getRolloutPercentage(segmentRule.getRolloutPercentage(), feature.getRolloutPercentage());
+                                    int hashResult = calculateMurmurHash(entityId, feature.getFeatureId());
+                                    if (rolloutPercentage == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE || hashResult < rolloutPercentage) {
+                                        if (segmentRule.getValue().equals("$default")) {
+                                            resultDict.put(ConfigConstants.VALUE, feature.getEnabledValue());
+                                        } else {
+                                            resultDict.put(ConfigConstants.VALUE, segmentRule.getValue());
+                                        }
+                                        resultDict.put(ConfigConstants.FEATURE_ENABLED, true);
                                     } else {
-                                        resultDict.put(ConfigConstants.VALUE, property.getValue());
+                                        resultDict.put(ConfigConstants.VALUE, feature.getDisabledValue());
+                                        resultDict.put(ConfigConstants.FEATURE_ENABLED, false);
                                     }
                                 } else {
-                                    resultDict.put(ConfigConstants.VALUE, segmentRule.getValue());
+                                    // property
+                                    if (segmentRule.getValue().equals("$default")) {
+                                        // inherited of value property.value
+                                        resultDict.put(ConfigConstants.VALUE, property.getValue());
+                                    } else {
+                                        // segment level overrided value
+                                        resultDict.put(ConfigConstants.VALUE, segmentRule.getValue());
+                                    }
                                 }
                                 return resultDict;
                             }
@@ -482,11 +502,26 @@ public class ConfigurationHandler {
             AppConfigException.logException(this.className, "RuleEvaluation", e);
         }
         if (feature != null) {
-            resultDict.put(ConfigConstants.VALUE, feature.getEnabledValue());
+            int hashResult = calculateMurmurHash(entityId, feature.getFeatureId());
+            if (feature.getRolloutPercentage() == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE || hashResult < feature.getRolloutPercentage()) {
+                resultDict.put(ConfigConstants.VALUE, feature.getEnabledValue());
+                resultDict.put(ConfigConstants.FEATURE_ENABLED, true);
+            } else {
+                resultDict.put(ConfigConstants.VALUE, feature.getDisabledValue());
+                resultDict.put(ConfigConstants.FEATURE_ENABLED, false);
+            }
         } else {
             resultDict.put(ConfigConstants.VALUE, property.getValue());
         }
         return resultDict;
+    }
+
+    private int getRolloutPercentage(Object segmentRolloutPer, int featureRolloutPer) {
+        if (segmentRolloutPer.equals("$default")) {
+            return featureRolloutPer;
+        } else {
+            return (int) segmentRolloutPer;
+        }
     }
 
     private Boolean evaluateSegment(String segmentKey, JSONObject entityAttributes) {
@@ -538,7 +573,7 @@ public class ConfigurationHandler {
             String url = URLBuilder.getConfigUrl();
             Response response;
             try {
-                response = ServiceImpl.getInstance(apikey, overrideServerHost).getConfig(url);
+                response = ServiceImpl.getInstance(apikey).getConfig(url);
             } catch (ServiceResponseException e) {
                 BaseLogger.error("Exception occurred while fetching configurations. Status code:" + e.getStatusCode() + " message: " + e.getMessage());
                 if (e.getStatusCode() == CoreConstants.TOO_MANY_REQUESTS || (e.getStatusCode() >= CoreConstants.SERVER_ERROR_BEGIN && e.getStatusCode() <= CoreConstants.SERVER_ERROR_END)) {
@@ -661,4 +696,16 @@ public class ConfigurationHandler {
         }
         return socketHandler;
     }
+
+    public int calculateMurmurHash(String entityId, String featureId) {
+        String data = entityId + ":" + featureId;
+        long hashResult = MurmurHash3.hash32x86(data.getBytes(), ConfigConstants.OFFSET, data.getBytes().length, ConfigConstants.SEED);
+
+        //The decimal equivalent of 0x00000000ffffffff = 2^32 (4294967295).
+        if (hashResult < 0) {
+            hashResult = hashResult & 0x00000000ffffffffL;
+        }
+        return (int) ((hashResult / ConfigConstants.MAX_VAL) * 100);
+    }
+
 }

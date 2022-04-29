@@ -29,6 +29,7 @@ public class SegmentRules {
     Integer order;
     Object value;
     JSONArray rules;
+    Object rolloutPercentage;
 
     /**
      * @param segmentRulesJson segment_rules JSON object that contains all the segment rules
@@ -38,9 +39,14 @@ public class SegmentRules {
             this.order = segmentRulesJson.getInt("order");
             this.value = segmentRulesJson.get(ConfigConstants.VALUE);
             this.rules = segmentRulesJson.getJSONArray(ConfigConstants.RULES);
+            if (segmentRulesJson.has(ConfigConstants.ROLLOUT_PERCENTAGE)) {
+                this.rolloutPercentage = segmentRulesJson.get(ConfigConstants.ROLLOUT_PERCENTAGE);
+            } else {
+                this.rolloutPercentage = ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE;
+            }
 
         } catch (Exception e) {
-            AppConfigException.logException(this.getClass().getName(), "SegmentRules.init", e, new Object[] {"Invalid action in SegmentRules class."});
+            AppConfigException.logException(this.getClass().getName(), "SegmentRules.init", e, new Object[]{"Invalid action in SegmentRules class."});
         }
     }
 
@@ -63,5 +69,12 @@ public class SegmentRules {
      */
     public JSONArray getRules() {
         return rules;
+    }
+
+    /**
+     * @return the rolloutPercentage in the segment_rules object
+     */
+    public Object getRolloutPercentage() {
+        return rolloutPercentage;
     }
 }

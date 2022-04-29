@@ -36,8 +36,7 @@ public class AppConfigurationTest {
     public void testConfigurationHandler() throws InterruptedException {
 
         AppConfiguration appConfiguration = AppConfiguration.getInstance();
-        AppConfiguration.overrideServerHost = "http://overrideServerHost";
-        assertTrue(AppConfiguration.overrideServerHost == "http://overrideServerHost");
+        AppConfiguration.overrideServiceUrl("http://overrideServerHost");
 
         appConfiguration.setContext("collectionId", "environmentId");
         appConfiguration.setContext("collectionId", "environmentId","",true);

@@ -50,7 +50,7 @@ public class Property {
             this.value = propertyData.get(ConfigConstants.VALUE);
         } catch (Exception e) {
             AppConfigException.logException("Property", "Constructor", e,
-                                             new Object[]{"Invalid action in Property class."});
+                    new Object[]{"Invalid action in Property class."});
         }
     }
 
@@ -115,9 +115,16 @@ public class Property {
     /**
      * Get the evaluated value of the property.
      *
-     * @param entityId id of the entity
-     * @param entityAttributes entity attributes JSON object
-     * @return evaluated value
+     * @param entityId         Id of the Entity.
+     *                         This will be a string identifier related to the Entity against which the property is evaluated.
+     *                         For example, an entity might be an instance of an app that runs on a mobile device, a microservice that runs on the cloud, or a component of infrastructure that runs that microservice.
+     *                         For any entity to interact with App Configuration, it must provide a unique entity ID.
+     * @param entityAttributes A JSON object consisting of the attribute name and their values that defines the specified entity.
+     *                         This is an optional parameter if the property is not configured with any targeting definition. If the targeting is configured,
+     *                         then entityAttributes should be provided for the rule evaluation.
+     *                         An attribute is a parameter that is used to define a segment. The SDK uses the attribute values to determine if the
+     *                         specified entity satisfies the targeting rules, and returns the appropriate property value.
+     * @return {boolean|string|number|null} Returns the default property value or its overridden value based on the evaluation.
      */
     public Object getCurrentValue(String entityId, JSONObject entityAttributes) {
 
@@ -128,6 +135,10 @@ public class Property {
 
         ConfigurationHandler configurationHandler = ConfigurationHandler.getInstance();
         return configurationHandler.propertyEvaluation(this, entityId, entityAttributes);
+    }
+
+    public Object getCurrentValue(String entityId) {
+        return getCurrentValue(entityId, null);
     }
 
 }

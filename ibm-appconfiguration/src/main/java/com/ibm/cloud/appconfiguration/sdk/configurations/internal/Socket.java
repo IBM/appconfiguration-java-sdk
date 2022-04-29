@@ -38,7 +38,7 @@ public class Socket extends WebSocketClient {
     }
 
     public void cancel() {
-        super.close();
+        super.close(ConfigConstants.CUSTOM_SOCKET_CLOSE_REASON_CODE);
     }
 
     @Override
@@ -57,11 +57,11 @@ public class Socket extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
-        if (remote) {
-            this.listener.onClose("Connection closed by remote host. " + " Code: " + code + " Reason: " + reason);
+        if (code != ConfigConstants.CUSTOM_SOCKET_CLOSE_REASON_CODE) {
+            this.listener.onClose("Connection closed." + " Code: " + code + " Reason: " + reason);
         } else {
-            // Don't to anything as it maybe the intentional close initiated by the client
-            BaseLogger.debug("Connection closed by client. " + " Code: " + code + " Reason: " + reason);
+            // Don't to anything as it is the intentional close initiated by the client
+            BaseLogger.debug("Connection closed by client." + " Code: " + code);
         }
     }
 
@@ -71,7 +71,7 @@ public class Socket extends WebSocketClient {
     }
 
     public static class Builder {
-        private  Map<String, String> headers;
+        private Map<String, String> headers;
         private URI serverUri;
         private SocketHandler listener;
 

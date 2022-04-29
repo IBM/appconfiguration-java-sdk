@@ -15,21 +15,39 @@
  */
 package com.ibm.cloud.appconfiguration.sdk.test.configurations.models;
 
+import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationOptions;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationType;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
-
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 
 public class FeatureTest {
 
     Feature sut;
+
+
+    static {
+        ConfigurationHandler configurationHandler = ConfigurationHandler.getInstance();
+        Path resourceDirectory = Paths.get("src","test","resources");
+        String absolutePath = resourceDirectory.toFile().getAbsolutePath();
+        ConfigurationOptions configOption = new ConfigurationOptions();
+        configOption.setBootstrapFile(absolutePath + "/user.json");
+        configOption.setLiveConfigUpdateEnabled(false);
+        configurationHandler.setContext(ConfigConstants.COLLECTION_ID, ConfigConstants.ENVIRONMENT_ID, configOption);
+        configurationHandler.loadData();
+    }
+
     public void setUpFeature(ConfigurationType type, Object disabled, Object enaabled, Boolean isEnabled,
                              String format) {
-
         JSONObject feature = new JSONObject();
         try {
             feature.put("name","defaultFeature");
@@ -40,6 +58,7 @@ public class FeatureTest {
             feature.put("enabled",isEnabled);
             feature.put("segment_exists", false);
             feature.put("segment_rules",new JSONArray());
+            feature.put("rollout_percentage",99);
             if (format != null) {
                 feature.put("format", format);
             }
@@ -135,5 +154,13 @@ public class FeatureTest {
         assertNull(this.sut.getDisabledValue());
         assertNull(this.sut.getEnabledValue());
         assertNull(this.sut.getSegmentRules());
+    }
+
+    @Test
+    public void testFeatureCurrentValueWithEntityId() {
+        setUpFeature(ConfigurationType.BOOLEAN, false,true , true, null);
+        assertEquals(sut.getFeatureDataType(), ConfigurationType.BOOLEAN);
+        Boolean currentValue = (Boolean) sut.getCurrentValue("test");
+        assertEquals(currentValue, true);
     }
 }

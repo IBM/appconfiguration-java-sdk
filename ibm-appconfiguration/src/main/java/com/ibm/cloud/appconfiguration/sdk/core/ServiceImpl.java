@@ -47,7 +47,7 @@ public class ServiceImpl extends BaseService {
     private static String version;
     private static String artifactId;
     private static String apikey = "";
-    private static String overrideServerHost = null;
+    private static String overrideServiceUrl = null;
 
     static {
         readSdkProperties();
@@ -56,14 +56,17 @@ public class ServiceImpl extends BaseService {
     private ServiceImpl() {
     }
 
+    public static void overrideServiceUrl(String url) {
+        overrideServiceUrl = url;
+    }
+
     /**
      * @param apikey the apikey
-     * @param overrideServerHost Server Host. Use for testing purpose.
      * @return instance of {@link ServiceImpl}
      */
-    public static ServiceImpl getInstance(String apikey, String overrideServerHost) {
+    public static ServiceImpl getInstance(String apikey) {
         if (instance == null) {
-            instance = init(apikey, overrideServerHost);
+            instance = init(apikey);
         }
         return instance;
     }
@@ -72,9 +75,8 @@ public class ServiceImpl extends BaseService {
         super(serviceName, authenticator);
     }
 
-    private static ServiceImpl init(String apikey, String overrideServerHost) {
+    private static ServiceImpl init(String apikey) {
         ServiceImpl.apikey = apikey;
-        ServiceImpl.overrideServerHost = overrideServerHost;
         IamAuthenticator iamAuthenticator = ServiceImpl.getIamAuthenticator();
         ServiceImpl service = new ServiceImpl(ConfigConstants.DEFAULT_SERVICE_NAME, iamAuthenticator);
         service.enableRetries(CoreConstants.MAX_NO_OF_RETRIES, CoreConstants.MAX_RETRY_INTERVAL);
@@ -121,7 +123,7 @@ public class ServiceImpl extends BaseService {
     }
 
     private static IamAuthenticator createIamAuth() {
-        if (overrideServerHost != null) {
+        if (overrideServiceUrl != null) {
             iamAuthenticator = new IamAuthenticator.Builder().
             url(ConfigConstants.DEFAULT_HTTP_TYPE + DEFAULT_IAM_DEV_STAGE_URL).
             apikey(apikey).
