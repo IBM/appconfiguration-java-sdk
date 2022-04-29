@@ -31,8 +31,6 @@ import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
 
-import static com.ibm.cloud.appconfiguration.sdk.AppConfiguration.overrideServerHost;
-
 /**
  * Class consisting of methods that stores the feature and property evaluations metrics and send the metrics
  * to App Configuration server in intervals.
@@ -273,7 +271,7 @@ public class Metering {
     private void sendToServer(JSONObject data) {
         Response response;
         try {
-            response = ServiceImpl.getInstance(this.apikey, overrideServerHost).postMetering(this.meteringUrl, data);
+            response = ServiceImpl.getInstance(this.apikey).postMetering(this.meteringUrl, data);
             if (response.getStatusCode() == CoreConstants.REQUEST_SUCCESS_202) {
                 BaseLogger.debug("Successfully pushed the metering data.");
             }

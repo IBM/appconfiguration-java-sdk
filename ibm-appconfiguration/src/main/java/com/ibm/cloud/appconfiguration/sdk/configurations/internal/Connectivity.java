@@ -41,7 +41,8 @@ public class Connectivity {
         return instance;
     }
 
-    private Connectivity() { }
+    private Connectivity() {
+    }
 
     public void addConnectivityListener(ConnectivityListener listener) {
         listeners.add(listener);
@@ -69,13 +70,13 @@ public class Connectivity {
             connected = socket.isConnected();
         } catch (Exception e) {
             AppConfigException.logException(this.className, methodName, e,
-                                            new Object[] {"Exception in checking network connection."});
+                    new Object[]{"Exception in checking network connection."});
         } finally {
             try {
                 socket.close();
             } catch (Exception e) {
                 AppConfigException.logException(this.className, methodName, e,
-                                                new Object[] {"Exception in closing network connection."});
+                        new Object[]{"Exception in closing network connection."});
             }
         }
         if (connected) {

@@ -6,6 +6,7 @@
             "type": "STRING",
             "enabled_value": "hello",
             "disabled_value": "Bye",
+            "rollout_percentage": 99,
             "segment_rules": [
                 {
                     "rules": [
@@ -16,7 +17,8 @@
                         }
                     ],
                     "value": "Welcome",
-                    "order": 1
+                    "order": 1,
+                    "rollout_percentage": 99
                 }
             ],
             "segment_exists": true,
@@ -28,6 +30,7 @@
             "type": "STRING",
             "enabled_value": "Org user",
             "disabled_value": "unknown user",
+            "rollout_percentage": 99,
             "segment_rules": [
                 {
                     "rules": [
@@ -38,7 +41,8 @@
                         }
                     ],
                     "value": "Test user",
-                    "order": 1
+                    "order": 1,
+                    "rollout_percentage": 99
                 }
             ],
             "segment_exists": true,
@@ -50,6 +54,7 @@
             "type": "NUMERIC",
             "enabled_value": 5,
             "disabled_value": 0,
+            "rollout_percentage": 99,
             "segment_rules": [
                 {
                     "rules": [
@@ -60,7 +65,8 @@
                         }
                     ],
                     "value": "19",
-                    "order": 1
+                    "order": 1,
+                    "rollout_percentage": 99
                 }
             ],
             "segment_exists": true,

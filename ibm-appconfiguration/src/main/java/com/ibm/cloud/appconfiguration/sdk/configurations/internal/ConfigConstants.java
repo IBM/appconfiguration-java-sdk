@@ -1,12 +1,12 @@
 /**
  * Copyright 2021 IBM Corp. All Rights Reserved.
- *
+ * <p>
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
+ * <p>
+ * http://www.apache.org/licenses/LICENSE-2.0
+ * <p>
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,7 +21,8 @@ package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
  */
 public class ConfigConstants {
 
-    private ConfigConstants() { }
+    private ConfigConstants() {
+    }
 
     public static final String DEFAULT_SEGMENT_ID = "$$null$$";
     public static final String DEFAULT_ENTITY_ID = "$$null$$";
@@ -53,4 +54,14 @@ public class ConfigConstants {
     public static final String DISABLED_VALUE = "disabled_value";
     public static final String FORMAT = "format";
     public static final String PERSISTENTCACHE_FILE = "appconfiguration.json";
+    public static final String ROLLOUT_PERCENTAGE = "rollout_percentage";
+    public static final String FEATURE_ENABLED = "feature_enabled";
+    public static final int DEFAULT_ROLLOUT_PERCENTAGE = 100;
+    public static final int SEED = 0;
+    public static final int OFFSET = 0;
+    public static final double MAX_VAL = Math.pow(2, 32);
+    public static final String IS_ENABLED = "is_enabled";
+    public static final String CURRENT_VALUE = "current_value";
+    public static final int CUSTOM_SOCKET_CLOSE_REASON_CODE = 4001;
+
 }

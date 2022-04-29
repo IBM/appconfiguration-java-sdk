@@ -33,7 +33,8 @@ public class FileManager {
 
     private static final String fileName = "appconfiguration.json";
 
-    private FileManager() { }
+    private FileManager() {
+    }
 
     private static String getCacheUrl() {
         Path source = Paths.get(FileManager.class.getResource("/").getPath());
@@ -97,7 +98,7 @@ public class FileManager {
         readFiles: try {
             File targetFile = new File(path);
             boolean success = targetFile.createNewFile();
-            if (targetFile.length()  == 0) {
+            if (targetFile.length() == 0) {
                 break readFiles;
             }
             ObjectMapper mapper = new ObjectMapper();

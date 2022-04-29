@@ -58,29 +58,36 @@ public class ConfigurationHandlerTest {
 
 
         String propertyJson = "{\"name\":\"numericProperty\",\"property_id\":\"numericproperty\",\"description\":\"testing prop\",\"value\":10,\"type\":\"NUMERIC\",\"tags\":\"test\",\"segment_rules\":[{\"rules\":[{\"segments\":[\"keuyclvf\"]}],\"value\":81,\"order\":1}],\"collections\":[{\"collection_id\":\"appcrash\"}]}";
-        String featureJson = "{\"name\":\"defaultFeature\",\"feature_id\":\"defaultfeature\",\"type\":\"STRING\",\"enabled_value\":\"hello\",\"disabled_value\":\"Bye\",\"segment_rules\":[{\"rules\":[{\"segments\":[\"kg92d3wa\"]}],\"value\":\"Welcome\",\"order\":1}],\"segment_exists\":true,\"enabled\":true}";
+        String featureJson = "{\"name\":\"defaultFeature\",\"feature_id\":\"defaultfeature\",\"type\":\"STRING\",\"enabled_value\":\"hello\",\"disabled_value\":\"Bye\",\"rollout_percentage\":100,\"segment_rules\":[{\"rules\":[{\"segments\":[\"kg92d3wa\"]}],\"value\":\"Welcome\",\"rollout_percentage\":100,\"order\":1}],\"segment_exists\":true,\"enabled\":true}";
+
         JSONObject featureJsonObject = new JSONObject(featureJson);
         JSONObject propertyJsonObject = new JSONObject(propertyJson);
+
+
 
         Feature featureObj = new Feature(featureJsonObject);
         Property propertyObj = new Property(propertyJsonObject);
 
+
         JSONObject entityObj = new JSONObject();
         entityObj.put("email", "test.dev@tester.com");
 
-        Object value = configurationHandler.featureEvaluation(featureObj, true,"id1", entityObj);
-        assertEquals(value, "Welcome");
+        HashMap<String, Object> map = configurationHandler.featureEvaluation(featureObj, "id1", entityObj);
+        assertEquals(map.get(ConfigConstants.CURRENT_VALUE), "Welcome");
+
+        map = configurationHandler.featureEvaluation(featureObj, "id1", entityObj);
+        assertEquals(map.get(ConfigConstants.IS_ENABLED), true);
 
         entityObj.put("email", "test@tester.com");
-        value = configurationHandler.featureEvaluation(featureObj, true, "id1", entityObj);
-        assertEquals(value, "hello");
+        map = configurationHandler.featureEvaluation(featureObj, "id1", entityObj);
+        assertEquals(map.get(ConfigConstants.CURRENT_VALUE), "hello");
 
-        value = configurationHandler.featureEvaluation(featureObj, true, "id1", new JSONObject());
-        assertEquals(value, "hello");
+        map = configurationHandler.featureEvaluation(featureObj, "id1", new JSONObject());
+        assertEquals(map.get(ConfigConstants.CURRENT_VALUE), "hello");
 
 
         entityObj.put("email", "test.dev@tester.com");
-        value = configurationHandler.propertyEvaluation(propertyObj, "id1", entityObj);
+        Object value = configurationHandler.propertyEvaluation(propertyObj, "id1", entityObj);
         assertEquals(value, 81);
 
 

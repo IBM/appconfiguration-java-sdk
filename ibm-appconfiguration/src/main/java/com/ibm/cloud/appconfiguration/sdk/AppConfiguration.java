@@ -25,6 +25,7 @@ import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigMessages
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationOptions;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
+import com.ibm.cloud.appconfiguration.sdk.core.ServiceImpl;
 
 import java.util.HashMap;
 
@@ -37,7 +38,7 @@ import java.util.HashMap;
  * Toggle feature flag states in the cloud to activate or deactivate features in your application or
  * environment, when required. You can also manage the properties for distributed applications centrally.
  *
- * @version 0.2.4
+ * @version 0.3.0
  * @see <a href="https://cloud.ibm.com/docs/app-configuration">App Configuration</a>
  */
 public class AppConfiguration {
@@ -47,8 +48,7 @@ public class AppConfiguration {
     public static final String REGION_EU_GB = "eu-gb";
     public static final String REGION_AU_SYD = "au-syd";
     public static final String REGION_US_EAST = "us-east";
-    public static String overrideServerHost = null;
-
+    private static String overrideServiceUrl = null;
     private String apiKey = "";
     private String region = "";
     private String guid = "";
@@ -73,7 +73,27 @@ public class AppConfiguration {
         return instance;
     }
 
-    private AppConfiguration() { }
+    private AppConfiguration() {
+    }
+
+    /**
+     * Override the default App Configuration URL. This method should be invoked before the SDK initialization.
+     * <pre>
+     *     // Example
+     *     AppConfiguration.overrideServiceUrl("https://testurl.com");
+     * </pre>
+     * NOTE: To be used for development purposes only.
+     *
+     * @param url The base url
+     */
+    public static void overrideServiceUrl(String url) {
+        if (url != null && url.endsWith("/")) {
+            url = url.substring(0, url.length() - 1);
+        }
+        ServiceImpl.overrideServiceUrl(url);
+        overrideServiceUrl = url;
+    }
+
 
     /**
      * Initialize the sdk to connect with your App Configuration service instance.
@@ -105,7 +125,7 @@ public class AppConfiguration {
 
     private void setupConfigureHandler() {
         this.configurationHandlerInstance = ConfigurationHandler.getInstance();
-        this.configurationHandlerInstance.init(this.apiKey, this.guid, this.region, overrideServerHost);
+        this.configurationHandlerInstance.init(this.apiKey, this.guid, this.region, overrideServiceUrl);
     }
 
     /**
