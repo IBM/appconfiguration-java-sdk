@@ -19,6 +19,7 @@ package com.ibm.cloud.appconfiguration.sdk.core;
 import com.google.gson.Gson;
 import com.google.gson.JsonObject;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.URLBuilder;
 import com.ibm.cloud.sdk.core.http.HttpHeaders;
 import com.ibm.cloud.sdk.core.http.HttpMediaType;
 import com.ibm.cloud.sdk.core.http.RequestBuilder;
@@ -35,29 +36,24 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
 
+
 /**
  * A wrapper class consisting of methods that perform API request/response handling of the AppConfiguration SDK
  * by extending the {@link BaseService}.
  */
 public class ServiceImpl extends BaseService {
     private static final String SDK_PROPERTIES_FILE_NAME = "appconfiguration-java-sdk.properties";
-    private static final String DEFAULT_IAM_DEV_STAGE_URL = "iam.test.cloud.ibm.com";
     private static ServiceImpl instance;
     private static IamAuthenticator iamAuthenticator = null;
     private static String version;
     private static String artifactId;
     private static String apikey = "";
-    private static String overrideServiceUrl = null;
 
     static {
         readSdkProperties();
     }
 
     private ServiceImpl() {
-    }
-
-    public static void overrideServiceUrl(String url) {
-        overrideServiceUrl = url;
     }
 
     /**
@@ -123,16 +119,11 @@ public class ServiceImpl extends BaseService {
     }
 
     private static IamAuthenticator createIamAuth() {
-        if (overrideServiceUrl != null) {
-            iamAuthenticator = new IamAuthenticator.Builder().
-            url(ConfigConstants.DEFAULT_HTTP_TYPE + DEFAULT_IAM_DEV_STAGE_URL).
-            apikey(apikey).
-            build();
-        } else {
-            //this automatically calls iam prod url
-            iamAuthenticator = new IamAuthenticator.Builder()
-            .apikey(apikey).build();
-        }
+        iamAuthenticator = new IamAuthenticator.Builder()
+                .url(URLBuilder.getIamUrl())
+                .apikey(apikey)
+                .build();
+
         return iamAuthenticator;
     }
 

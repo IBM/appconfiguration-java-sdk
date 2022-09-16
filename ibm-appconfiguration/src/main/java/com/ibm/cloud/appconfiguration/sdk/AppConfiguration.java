@@ -25,10 +25,8 @@ import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigMessages
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationOptions;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
-import com.ibm.cloud.appconfiguration.sdk.core.ServiceImpl;
 
 import java.util.HashMap;
-
 
 /**
  * IBM Cloud App Configuration is a centralized feature management and configuration service on IBM
@@ -38,7 +36,7 @@ import java.util.HashMap;
  * Toggle feature flag states in the cloud to activate or deactivate features in your application or
  * environment, when required. You can also manage the properties for distributed applications centrally.
  *
- * @version 0.3.0
+ * @version 0.3.1
  * @see <a href="https://cloud.ibm.com/docs/app-configuration">App Configuration</a>
  */
 public class AppConfiguration {
@@ -58,6 +56,7 @@ public class AppConfiguration {
     private String persistentCacheLocation = null;
     private String bootstrapFile = null;
     private Boolean liveConfigUpdateEnabled = true;
+    private boolean usePrivateEndpoint = false;
 
     /**
      * Returns an instance of the {@link AppConfiguration} class. If the same {@link AppConfiguration} instance
@@ -90,10 +89,8 @@ public class AppConfiguration {
         if (url != null && url.endsWith("/")) {
             url = url.substring(0, url.length() - 1);
         }
-        ServiceImpl.overrideServiceUrl(url);
         overrideServiceUrl = url;
     }
-
 
     /**
      * Initialize the sdk to connect with your App Configuration service instance.
@@ -125,7 +122,7 @@ public class AppConfiguration {
 
     private void setupConfigureHandler() {
         this.configurationHandlerInstance = ConfigurationHandler.getInstance();
-        this.configurationHandlerInstance.init(this.apiKey, this.guid, this.region, overrideServiceUrl);
+        this.configurationHandlerInstance.init(this.apiKey, this.guid, this.region, overrideServiceUrl, this.usePrivateEndpoint);
     }
 
     /**
@@ -189,7 +186,6 @@ public class AppConfiguration {
         this.configurationHandlerInstance.setContext(collectionId, environmentId, configOption);
     }
 
-
     /**
      * Sets the context of the SDK.
      *
@@ -225,6 +221,19 @@ public class AppConfiguration {
         configOption.setLiveConfigUpdateEnabled(liveConfigUpdateEnabled);
         configOption.setBootstrapFile(configurationFile);
         this.configurationHandlerInstance.setContext(collectionId, environmentId, configOption);
+    }
+
+    /**
+     * Set the SDK to connect to App Configuration service by using a private endpoint that is
+     * accessible only through the IBM Cloud private network.
+     * <p>
+     * This function must be called before calling the `init` function on the SDK.
+     *
+     * @param usePrivateEndpointParam Set to true if the SDK should connect to App Configuration using private endpoint.
+     *                                Be default, it is set to false.
+     */
+    public void usePrivateEndpoint(boolean usePrivateEndpointParam) {
+        this.usePrivateEndpoint = usePrivateEndpointParam;
     }
 
     /**
@@ -317,6 +326,4 @@ public class AppConfiguration {
     public void enableDebug(Boolean enable) {
         BaseLogger.setDebug(enable);
     }
-
-
 }

@@ -35,7 +35,7 @@ public class ConfigurationOptions {
     /**
      * Set the Persistent Cache Directory.
      *
-     * @param persistentCacheDirectory
+     * @param persistentCacheDirectory Absolute path of the directory which will be used for persistent caching
      */
     public void setPersistentCacheDirectory(String persistentCacheDirectory) {
         this.persistentCacheDirectory = persistentCacheDirectory;
@@ -53,7 +53,7 @@ public class ConfigurationOptions {
     /**
      * Set the value of LiveConfigUpdateEnabled.
      *
-     * @param liveConfigUpdateEnabled
+     * @param liveConfigUpdateEnabled boolean value to enabled or disable the live configurations update from the server.
      */
     public void setLiveConfigUpdateEnabled(Boolean liveConfigUpdateEnabled) {
         this.liveConfigUpdateEnabled = liveConfigUpdateEnabled;
@@ -71,7 +71,7 @@ public class ConfigurationOptions {
     /**
      * Set the Bootstrap file.
      *
-     * @param bootstrapFile
+     * @param bootstrapFile Absolute path of bootstrap configuration file
      */
     public void setBootstrapFile(String bootstrapFile) {
         this.bootstrapFile = bootstrapFile;

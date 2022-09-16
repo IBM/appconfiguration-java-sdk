@@ -21,62 +21,97 @@ package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
  */
 public class URLBuilder {
 
-    private static final String wsUrl = "/wsfeature";
-    private static final String path = "/feature/v1/instances/";
+    private static final String https = "https://";
+    private static final String wss = "wss://";
+    private static final String basePath = ".apprapp.cloud.ibm.com";
+    private static final String wsPath = "/wsfeature";
     private static final String service = "/apprapp";
-    private static final String events = "/events/v1/instances/";
+    private static final String featurePath = "/feature/v1/instances/";
+    private static final String eventsPath = "/events/v1/instances/";
+    private static final String privateEndpointPrefix = "private.";
     private static final String config = "config";
-    private static String overrideServiceUrl = null;
-    private static String region = "";
+    private static final String usage = "usage";
     private static String httpBase = "";
-    private static String webSocketBase = "";
+    private static String iamUrl = "";
+    private static String configUrl = "";
+    private static String meteringUrl = "";
+    private static String webSocketUrl = "";
 
     private URLBuilder() {
     }
 
     /**
-     * @param collectionId collection id
-     * @param environmentId environment id
-     * @param region region name of App Configuration service instance
-     * @param guid guid of App Configuration service instance
+     * @param collectionId       collection id
+     * @param environmentId      environment id
+     * @param region             region name of App Configuration service instance
+     * @param guid               guid of App Configuration service instance
      * @param overrideServiceUrl service url. Use for testing purpose
+     * @param usePrivateEndpoint If true, use private endpoint to connect to App Configuration service instance.
      */
     public static void initWithContext(String collectionId, String environmentId, String region,
-                                       String guid, String overrideServiceUrl) {
+                                       String guid, String overrideServiceUrl, boolean usePrivateEndpoint) {
 
         if (Validators.validateString(collectionId) && Validators.validateString(environmentId)
                 && Validators.validateString(region) && Validators.validateString(guid)) {
 
-            URLBuilder.region = region;
-            URLBuilder.overrideServiceUrl = overrideServiceUrl;
-
-            webSocketBase = ConfigConstants.DEFAULT_WSS_TYPE;
-            httpBase = ConfigConstants.DEFAULT_HTTP_TYPE;
-
+            // for dev & stage
             if (Validators.validateString(overrideServiceUrl)) {
-                httpBase = overrideServiceUrl;
-                webSocketBase += (overrideServiceUrl.replace("https://", "").replace("http://", ""));
+                String[] temp = overrideServiceUrl.split("://");
+                if (usePrivateEndpoint) {
+                    httpBase = temp[0] + "://" + privateEndpointPrefix + temp[1];
+                    iamUrl = "https://private.iam.test.cloud.ibm.com";
+                    webSocketUrl = wss + privateEndpointPrefix + temp[1];
+                } else {
+                    httpBase = overrideServiceUrl;
+                    iamUrl = "https://iam.test.cloud.ibm.com";
+                    webSocketUrl = wss + temp[1];
+                }
+                // for prod
             } else {
-                httpBase += region;
-                httpBase += ConfigConstants.DEFAULT_BASE_URL;
-                webSocketBase += region;
-                webSocketBase += ConfigConstants.DEFAULT_BASE_URL;
+                if (usePrivateEndpoint) {
+                    httpBase = https + privateEndpointPrefix + region + basePath;
+                    iamUrl = "https://private.iam.cloud.ibm.com";
+                    webSocketUrl = wss + privateEndpointPrefix + region + basePath;
+                } else {
+                    httpBase = https + region + basePath;
+                    iamUrl = "https://iam.cloud.ibm.com";
+                    webSocketUrl = wss + region + basePath;
+                }
             }
 
-            httpBase += String.format("%s%s%s/collections/%s/%s?environment_id=%s", service, path, guid,
+            configUrl = httpBase + String.format("%s%s%s/collections/%s/%s?environment_id=%s", service, featurePath, guid,
                     collectionId, config, environmentId);
-            webSocketBase += String.format("%s%s?instance_id=%s&collection_id=%s&environment_id=%s", service,
-                    wsUrl, guid, collectionId, environmentId);
+            meteringUrl = httpBase + String.format("%s%s%s/%s", service, eventsPath, guid, usage);
+            webSocketUrl = webSocketUrl + String.format("%s%s?instance_id=%s&collection_id=%s&environment_id=%s", service,
+                    wsPath, guid, collectionId, environmentId);
         }
     }
 
     /**
-     * Return the Configuration URL.
+     * Return the Base service URL.
      *
-     * @return configuration url
+     * @return Base service url
+     */
+    public static String getBaseUrl() {
+        return httpBase;
+    }
+
+    /**
+     * Return the IAM URL.
+     *
+     * @return IAM url
+     */
+    public static String getIamUrl() {
+        return iamUrl;
+    }
+
+    /**
+     * Return the Config URL.
+     *
+     * @return config url
      */
     public static String getConfigUrl() {
-        return httpBase;
+        return configUrl;
     }
 
     /**
@@ -85,22 +120,15 @@ public class URLBuilder {
      * @return websocket url
      */
     public static String getWebSocketUrl() {
-        return webSocketBase;
+        return webSocketUrl;
     }
 
     /**
-     * Return the mettering URL.
+     * Return the metering URL.
      *
-     * @param guid guid of App Configuration service instance
      * @return metering url
      */
-    public static String getMeteringUrl(String guid) {
-        String base = ConfigConstants.DEFAULT_HTTP_TYPE;
-        if (Validators.validateString(overrideServiceUrl)) {
-            base = overrideServiceUrl + service;
-        } else {
-            base += region + ConfigConstants.DEFAULT_BASE_URL + service;
-        }
-        return base + events + guid + "/usage";
+    public static String getMeteringUrl() {
+        return meteringUrl;
     }
 }

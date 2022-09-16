@@ -18,30 +18,42 @@ package com.ibm.cloud.appconfiguration.sdk.test.configurations.internal;
 
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.URLBuilder;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 public class URLBuilderTest {
 
     @Test
     public void testUrls() {
-        URLBuilder.initWithContext("collection_id", "environment_id", "region", "guid", "");
+        String overrideServiceUrl = "https://region.apprapp.test.cloud.ibm.com";
 
-        assertTrue(URLBuilder.getConfigUrl().startsWith("https://region"));
-        assertTrue(URLBuilder.getConfigUrl().contains("/collection_id/"));
-        assertTrue(URLBuilder.getConfigUrl().contains("/guid/"));
-        assertTrue(URLBuilder.getConfigUrl().contains("environment_id=environment_id"));
+        // test prod url
+        URLBuilder.initWithContext("collection_id", "environment_id", "region", "guid", "", false);
+        assertEquals("https://region.apprapp.cloud.ibm.com/apprapp/feature/v1/instances/guid/collections/collection_id/config?environment_id=environment_id", URLBuilder.getConfigUrl());
+        assertEquals("https://region.apprapp.cloud.ibm.com/apprapp/events/v1/instances/guid/usage", URLBuilder.getMeteringUrl());
+        assertEquals("https://iam.cloud.ibm.com", URLBuilder.getIamUrl());
+        assertEquals("wss://region.apprapp.cloud.ibm.com/apprapp/wsfeature?instance_id=guid&collection_id=collection_id&environment_id=environment_id", URLBuilder.getWebSocketUrl());
 
+        // test dev & stage url
+        URLBuilder.initWithContext("collection_id", "environment_id", "region", "guid", overrideServiceUrl, false);
+        assertEquals("https://region.apprapp.test.cloud.ibm.com/apprapp/feature/v1/instances/guid/collections/collection_id/config?environment_id=environment_id", URLBuilder.getConfigUrl());
+        assertEquals("https://region.apprapp.test.cloud.ibm.com/apprapp/events/v1/instances/guid/usage", URLBuilder.getMeteringUrl());
+        assertEquals("https://iam.test.cloud.ibm.com", URLBuilder.getIamUrl());
+        assertEquals("wss://region.apprapp.test.cloud.ibm.com/apprapp/wsfeature?instance_id=guid&collection_id=collection_id&environment_id=environment_id", URLBuilder.getWebSocketUrl());
 
-        assertTrue(URLBuilder.getMeteringUrl("guid").contains("/guid/"));
-        assertTrue(URLBuilder.getMeteringUrl("guid").startsWith("https://region"));
+        // test prod url with private endpoint
+        URLBuilder.initWithContext("collection_id", "environment_id", "region", "guid", "", true);
+        assertEquals("https://private.region.apprapp.cloud.ibm.com/apprapp/feature/v1/instances/guid/collections/collection_id/config?environment_id=environment_id", URLBuilder.getConfigUrl());
+        assertEquals("https://private.region.apprapp.cloud.ibm.com/apprapp/events/v1/instances/guid/usage", URLBuilder.getMeteringUrl());
+        assertEquals("https://private.iam.cloud.ibm.com", URLBuilder.getIamUrl());
+        assertEquals("wss://private.region.apprapp.cloud.ibm.com/apprapp/wsfeature?instance_id=guid&collection_id=collection_id&environment_id=environment_id", URLBuilder.getWebSocketUrl());
 
-        assertTrue(URLBuilder.getWebSocketUrl().startsWith("wss://region"));
-        assertTrue(URLBuilder.getWebSocketUrl().contains("instance_id=guid"));
-        assertTrue(URLBuilder.getWebSocketUrl().contains("collection_id=collection_id"));
-
-        URLBuilder.initWithContext("collection_id","environment_id" ,"region", "guid", "https://customRegion.cloud.base");
-        assertTrue(URLBuilder.getConfigUrl().startsWith("https://customRegion.cloud.base"));
-
+        // test dev & stage url with private endpoint
+        URLBuilder.initWithContext("collection_id", "environment_id", "region", "guid", overrideServiceUrl, true);
+        assertEquals("https://private.region.apprapp.test.cloud.ibm.com/apprapp/feature/v1/instances/guid/collections/collection_id/config?environment_id=environment_id", URLBuilder.getConfigUrl());
+        assertEquals("https://private.region.apprapp.test.cloud.ibm.com/apprapp/events/v1/instances/guid/usage", URLBuilder.getMeteringUrl());
+        assertEquals("https://private.iam.test.cloud.ibm.com", URLBuilder.getIamUrl());
+        assertEquals("wss://private.region.apprapp.test.cloud.ibm.com/apprapp/wsfeature?instance_id=guid&collection_id=collection_id&environment_id=environment_id", URLBuilder.getWebSocketUrl());
 
     }
 }
