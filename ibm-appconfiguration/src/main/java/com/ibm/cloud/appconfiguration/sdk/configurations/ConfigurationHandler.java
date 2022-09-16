@@ -71,6 +71,7 @@ public class ConfigurationHandler {
     private Boolean onSocketRetry = false;
     private String overrideServiceUrl = null;
     private String persistentCacheLocation = null;
+    private boolean usePrivateEndpoint = false;
 
     private RetryHandler configRetry;
     private RetryHandler socketRetry;
@@ -101,12 +102,14 @@ public class ConfigurationHandler {
      * @param guid guid/instanceId of App Configuration service instance
      * @param region region name of App Configuration service instance
      * @param overrideServiceUrl service url. Use for testing purpose
+     * @param usePrivateEndpoint If true, use private endpoint to connect to App Configuration service instance.
      */
-    public void init(String apikey, String guid, String region, String overrideServiceUrl) {
+    public void init(String apikey, String guid, String region, String overrideServiceUrl, boolean usePrivateEndpoint) {
         this.apikey = apikey;
         this.guid = guid;
         this.region = region;
         this.overrideServiceUrl = overrideServiceUrl;
+        this.usePrivateEndpoint = usePrivateEndpoint;
 
         this.featureMap = new HashMap<>();
         this.propertyMap = new HashMap<>();
@@ -134,8 +137,8 @@ public class ConfigurationHandler {
         }
         this.collectionId = collectionId;
         this.environmentId = environmentId;
-        URLBuilder.initWithContext(collectionId, environmentId, region, guid, overrideServiceUrl);
-        Metering.getInstance().setMeteringUrl(URLBuilder.getMeteringUrl(guid), apikey);
+        URLBuilder.initWithContext(collectionId, environmentId, region, guid, overrideServiceUrl, usePrivateEndpoint);
+        Metering.getInstance().setMeteringUrl(URLBuilder.getMeteringUrl(), apikey);
         this.isInitialized = true;
 
         if (this.liveConfigUpdateEnabled) {

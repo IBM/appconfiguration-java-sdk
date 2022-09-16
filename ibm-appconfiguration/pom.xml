@@ -6,7 +6,7 @@
 
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>0.3.0</version>
+    <version>0.3.1</version>
     <packaging>jar</packaging>
 
     <name>IBM Cloud App Configuration Java server SDK</name>
@@ -78,7 +78,7 @@
         <dependency>
             <groupId>com.ibm.cloud</groupId>
             <artifactId>sdk-core</artifactId>
-            <version>9.16.1</version>
+            <version>9.17.3</version>
         </dependency>
         <dependency>
             <groupId>commons-codec</groupId>

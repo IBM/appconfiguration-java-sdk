@@ -26,9 +26,6 @@ public class ConfigConstants {
 
     public static final String DEFAULT_SEGMENT_ID = "$$null$$";
     public static final String DEFAULT_ENTITY_ID = "$$null$$";
-    public static final String DEFAULT_HTTP_TYPE = "https://";
-    public static final String DEFAULT_WSS_TYPE = "wss://";
-    public static final String DEFAULT_BASE_URL = ".apprapp.cloud.ibm.com";
     public static final int DEFAULT_USAGE_LIMIT = 10;
     public static final String DEFAULT_SERVICE_NAME = "app_configuration";
     public static final String PROPERTIES = "properties";

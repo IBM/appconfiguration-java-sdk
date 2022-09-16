@@ -25,14 +25,14 @@ Instrument your applications with App Configuration Java SDK, and use the App Co
 <dependency>
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>0.3.0</version>
+    <version>0.3.1</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```sh
-implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.3.0'
+implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.3.1'
 ```
 
 ## Import the SDK
@@ -70,6 +70,17 @@ using **`AppConfiguration.getInstance()`**.  [See this example below](#fetching-
 - apikey : ApiKey of the App Configuration service. Get it from the service instance credentials section of the dashboard
 - collectionId : Id of the collection created in App Configuration service instance under the **Collections** section.
 - environmentId : Id of the environment created in App Configuration service instance under the **Environments** section.
+
+### Connect using private network connection (optional)
+
+Set the SDK to connect to App Configuration service by using a private endpoint that is accessible only through the IBM
+Cloud private network.
+
+```java
+appConfigClient.usePrivateEndpoint(true);
+```
+
+This must be done before calling the `init` function on the SDK.
 
 ### (Optional)
 In order for your application and SDK to continue its operations even during the unlikely scenario of App Configuration service across your application restarts, you can configure the SDK to work using a persistent cache. The SDK uses the persistent cache to store the App Configuration data that will be available across your application restarts.

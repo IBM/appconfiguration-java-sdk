@@ -22,10 +22,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 public class CoreConstantsTest {
     @Test public void testCoreConstants() {
-        assertEquals(CoreConstants.REQUEST_SUCCESS_200, new Integer(200));
-        assertEquals(CoreConstants.REQUEST_SUCCESS_299, new Integer(299));
-        assertEquals(CoreConstants.REQUEST_ERROR, new Integer(400));
-        assertEquals(CoreConstants.REQUEST_ERROR_AUTH, new Integer(401));
-        assertEquals(CoreConstants.REQUEST_ERROR_NOT_SUPPORTED, new Integer(405));
+        assertEquals(CoreConstants.REQUEST_SUCCESS_200, Integer.valueOf(200));
+        assertEquals(CoreConstants.REQUEST_SUCCESS_299, Integer.valueOf(299));
+        assertEquals(CoreConstants.REQUEST_ERROR, Integer.valueOf(400));
+        assertEquals(CoreConstants.REQUEST_ERROR_AUTH, Integer.valueOf(401));
+        assertEquals(CoreConstants.REQUEST_ERROR_NOT_SUPPORTED, Integer.valueOf(405));
     }
 }
