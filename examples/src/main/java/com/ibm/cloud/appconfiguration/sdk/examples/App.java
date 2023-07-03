@@ -38,6 +38,7 @@ public class App {
         try (ServerSocket serverSocket = new ServerSocket(8080)) {
             while (true) {
                 try (Socket client = serverSocket.accept()) {
+                    //hit localhost:8080 to test the handleClient
                     handleClient(client);
                 }
             }
