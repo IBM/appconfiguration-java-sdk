@@ -25,14 +25,14 @@ Instrument your applications with App Configuration Java SDK, and use the App Co
 <dependency>
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>0.3.5</version>
+    <version>0.3.6</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```sh
-implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.3.5'
+implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.3.6'
 ```
 
 ## Import the SDK
@@ -66,6 +66,7 @@ using **`AppConfiguration.getInstance()`**.  [See this example below](#fetching-
     - `AppConfiguration.REGION_EU_GB` for London
     - `AppConfiguration.REGION_AU_SYD` for Sydney
     - `AppConfiguration.REGION_US_EAST` for Washington DC
+    - `AppConfiguration.REGION_EU_DE` for Frankfurt
 - guid : GUID of the App Configuration service. Get it from the service instance credentials section of the dashboard
 - apikey : ApiKey of the App Configuration service. Get it from the service instance credentials section of the dashboard
 - collectionId : Id of the collection created in App Configuration service instance under the **Collections** section.
