@@ -711,4 +711,10 @@ public class ConfigurationHandler {
         return (int) ((hashResult / ConfigConstants.MAX_VAL) * 100);
     }
 
+    public boolean isConnected() {
+        if (socket != null) {
+            return socket.isConnected();
+        }
+        return false;
+    }
 }

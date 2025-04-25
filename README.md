@@ -25,14 +25,14 @@ Instrument your applications with App Configuration Java SDK, and use the App Co
 <dependency>
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>0.3.7</version>
+    <version>0.3.8</version>
 </dependency>
 ```
 
 ### Gradle
 
 ```sh
-implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.3.7'
+implementation group: 'com.ibm.cloud', name: 'appconfiguration-java-sdk', version: '0.3.8'
 ```
 
 ## Import the SDK
@@ -44,7 +44,7 @@ import com.ibm.cloud.appconfiguration.sdk.AppConfiguration;
 ## Initialize SDK
 
 ```java
-String region = AppConfiguration.REGION_US_SOUTH;
+String region = "region";
 String guid = "guid";
 String apikey = "apikey";
 
@@ -61,15 +61,7 @@ The **`init()`** and **`setContext()`** are the initialisation methods and shoul
 appConfigClient. The appConfigClient, once initialised, can be obtained across classes.
 using **`AppConfiguration.getInstance()`**.  [See this example below](#fetching-the-appConfigClient-across-other-classes).
 
-- region : Region name where the service instance is created. Use
-    - `AppConfiguration.REGION_US_SOUTH` for Dallas
-    - `AppConfiguration.REGION_EU_GB` for London
-    - `AppConfiguration.REGION_AU_SYD` for Sydney
-    - `AppConfiguration.REGION_US_EAST` for Washington DC
-    - `AppConfiguration.REGION_EU_DE` for Frankfurt
-    - `AppConfiguration.REGION_CA_TOR` for Toronto
-    - `AppConfiguration.REGION_JP_TOK` for Tokyo
-    - `AppConfiguration.REGION_JP_OSA` for Osaka
+- region : Region name where the service instance is created. See list of supported locations [here](https://cloud.ibm.com/catalog/services/app-configuration). Eg:- `us-south`, `au-syd` etc.
 - guid : GUID of the App Configuration service. Get it from the service instance credentials section of the dashboard
 - apikey : ApiKey of the App Configuration service. Get it from the service instance credentials section of the dashboard
 - collectionId : Id of the collection created in App Configuration service instance under the **Collections** section.
