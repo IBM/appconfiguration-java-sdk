@@ -105,6 +105,16 @@ public class RuleTest {
             setUp("tester", "startsWith", "email");
             assertTrue(sut.evaluateRule(clientAttributes));
 
+            clientAttributes.put("email","tester@in.ibm.com");
+            setUp("bob", "notStartsWith", "email");
+            assertTrue(sut.evaluateRule(clientAttributes));
+            setUp("@google.com", "notEndsWith", "email");
+            assertTrue(sut.evaluateRule(clientAttributes));
+            setUp("#", "notContains", "email");
+            assertTrue(sut.evaluateRule(clientAttributes));
+            setUp("bob@ibm.com", "isNot", "email");
+            assertTrue(sut.evaluateRule(clientAttributes));
+
 
             clientAttributes.put("email","tester@in.ibm.com");
             setUp("ibm", "contains", "email");

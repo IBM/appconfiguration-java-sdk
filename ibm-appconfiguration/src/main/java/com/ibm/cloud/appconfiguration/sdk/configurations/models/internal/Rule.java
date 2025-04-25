@@ -20,6 +20,8 @@ import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.util.Arrays;
+
 /**
  * Defines the model of a rule defined for a segment in App Configuration service.
  */
@@ -41,7 +43,6 @@ public class Rule {
             this.values = ruleJson.getJSONArray("values");
         } catch (Exception e) {
             AppConfigException.logException(this.className, "Constructor", e, new Object[]{"Invalid action in Rule class."});
-
         }
     }
 
@@ -69,16 +70,34 @@ public class Rule {
             return result;
         }
 
-        for (int i = 0; i < this.values.length(); i++) {
-            try {
-                Object value = this.values.get(i);
-                if (operatorCheck(key, value)) {
-                    result = true;
-                }
+        if (Arrays.asList("isNot", "notContains", "notStartsWith", "notEndsWith").contains(this.operator)) {
+            // If negative operator, check whether all the values satisfies condition
+            result = true;
+            for (int i = 0; i < this.values.length(); i++) {
+                try {
+                    Object value = this.values.get(i);
+                    if (!operatorCheck(key, value)) {
+                        result = false;
+                    }
 
-            } catch (Exception e) {
-                AppConfigException.logException(this.className, methodName, e);
-                return result;
+                } catch (Exception e) {
+                    AppConfigException.logException(this.className, methodName, e);
+                    return result;
+                }
+            }
+        } else {
+            // If positive operator, check whether any one of the value satisfies condition
+            for (int i = 0; i < this.values.length(); i++) {
+                try {
+                    Object value = this.values.get(i);
+                    if (operatorCheck(key, value)) {
+                        result = true;
+                    }
+
+                } catch (Exception e) {
+                    AppConfigException.logException(this.className, methodName, e);
+                    return result;
+                }
             }
         }
         return result;
@@ -100,11 +119,20 @@ public class Rule {
             case "endsWith":
                 result = key.toString().endsWith(value.toString());
                 break;
+            case "notEndsWith":
+                result = !key.toString().endsWith(value.toString());
+                break;
             case "startsWith":
                 result = key.toString().startsWith(value.toString());
                 break;
+            case "notStartsWith":
+                result = !key.toString().startsWith(value.toString());
+                break;
             case "contains":
                 result = key.toString().contains(value.toString());
+                break;
+            case "notContains":
+                result = !key.toString().contains(value.toString());
                 break;
             case "is":
                 if (key.getClass().equals(value.getClass())) {
@@ -114,6 +142,17 @@ public class Rule {
                         result = value.toString().equals(key.toString());
                     } catch (Exception e) {
                         AppConfigException.logException(this.className, "is", e);
+                    }
+                }
+                break;
+            case "isNot":
+                if (key.getClass().equals(value.getClass())) {
+                    result = !key.equals(value);
+                } else {
+                    try {
+                        result = !value.toString().equals(key.toString());
+                    } catch (Exception e) {
+                        AppConfigException.logException(this.className, "isNot", e);
                     }
                 }
                 break;

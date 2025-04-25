@@ -30,7 +30,12 @@ import java.util.Map;
  */
 public class Socket extends WebSocketClient {
 
+    private boolean isActive = false;
     SocketHandler listener;
+
+    public boolean isConnected() {
+        return isActive;
+    }
 
     public Socket(Builder builder) {
         super(builder.serverUri, new Draft_6455(), builder.headers, 0);
@@ -43,11 +48,13 @@ public class Socket extends WebSocketClient {
 
     @Override
     public void onOpen(ServerHandshake serverHandshake) {
+        isActive = true;
         this.listener.onOpen("Opened the webSocket");
     }
 
     @Override
     public void onMessage(String message) {
+        isActive = true;
         if (!message.equals("test message")) {
             this.listener.onMessage(message);
         } else {
@@ -57,6 +64,7 @@ public class Socket extends WebSocketClient {
 
     @Override
     public void onClose(int code, String reason, boolean remote) {
+        isActive = false;
         if (code != ConfigConstants.CUSTOM_SOCKET_CLOSE_REASON_CODE) {
             this.listener.onClose("Connection closed." + " Code: " + code + " Reason: " + reason);
         } else {
@@ -67,6 +75,7 @@ public class Socket extends WebSocketClient {
 
     @Override
     public void onError(Exception e) {
+        isActive = false;
         this.listener.onError(e);
     }
 
