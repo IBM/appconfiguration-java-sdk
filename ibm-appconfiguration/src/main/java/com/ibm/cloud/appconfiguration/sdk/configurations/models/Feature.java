@@ -16,116 +16,125 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.models;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
-import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.SegmentRules;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.HashMap;
-
+import java.util.List;
 
 /**
  * Feature class.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Feature {
 
-    private Boolean enabled;
+    @JsonProperty("name")
     private String name;
+
+    @JsonProperty("feature_id")
     private String featureId;
-    private JSONArray segmentRules;
+
+    @JsonProperty("type")
     private ConfigurationType type;
+
+    @JsonProperty("format")
     private String format;
-    private Object disabledValue;
+
+    @JsonProperty("enabled_value")
     private Object enabledValue;
+
+    @JsonProperty("disabled_value")
+    private Object disabledValue;
+
+    @JsonProperty("segment_rules")
+    private List<SegmentRules> segmentRules;
+
+    @JsonProperty("enabled")
+    private Boolean enabled;
+
+    @JsonProperty("rollout_percentage")
     private Integer rolloutPercentage;
 
-    /**
-     * @param featureData features JSON object that contains all the features
-     */
-    public Feature(JSONObject featureData) {
+    @JsonProperty("collections")
+    private List<Collection> collections;
 
-        try {
-            this.enabled = featureData.getBoolean(ConfigConstants.ENABLED);
-            this.name = featureData.getString(ConfigConstants.NAME);
-            this.featureId = featureData.getString(ConfigConstants.FEATURE_ID);
-            this.segmentRules = featureData.getJSONArray(ConfigConstants.SEGMENT_RULES);
-            this.type = ConfigurationType.valueOf(featureData.getString(ConfigConstants.TYPE));
-            this.format = featureData.optString(ConfigConstants.FORMAT, null);
-            this.disabledValue = featureData.get(ConfigConstants.DISABLED_VALUE);
-            this.enabledValue = featureData.get(ConfigConstants.ENABLED_VALUE);
-            if (featureData.has(ConfigConstants.ROLLOUT_PERCENTAGE)) {
-                this.rolloutPercentage = featureData.getInt(ConfigConstants.ROLLOUT_PERCENTAGE);
-            } else {
-                this.rolloutPercentage = ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE;
-            }
-        } catch (Exception e) {
-            AppConfigException.logException("Feature", "Constructor", e, new Object[]{"Invalid action in Feature class."});
-        }
+    // Constructor for Jackson with required field validation
+    @JsonCreator
+    public Feature(
+        @JsonProperty(value = "name", required = true) String name,
+        @JsonProperty(value = "feature_id", required = true) String featureId,
+        @JsonProperty(value = "type", required = true) ConfigurationType type,
+        @JsonProperty(value = "enabled_value", required = true) Object enabledValue,
+        @JsonProperty(value = "disabled_value", required = true) Object disabledValue,
+        @JsonProperty(value = "segment_rules", required = true) List<SegmentRules> segmentRules,
+        @JsonProperty(value = "enabled", required = true) Boolean enabled
+    ) {
+        this.name = name;
+        this.featureId = featureId;
+        this.type = type;
+        this.enabledValue = enabledValue;
+        this.disabledValue = disabledValue;
+        this.segmentRules = segmentRules;
+        this.enabled = enabled;
+    }
+
+    // optional field, set it post-creation
+    @JsonProperty("format")
+    public void setFormat(String format) {
+        this.format = format;
+    }
+
+    // optional field, set it post-creation
+    @JsonProperty("rollout_percentage")
+    public void setRolloutPercentage(Integer rolloutPercentage) {
+        this.rolloutPercentage = rolloutPercentage;
+    }
+
+    // optional field, set it post-creation
+    @JsonProperty("collections")
+    public void setCollections(List<Collection> collections) {
+        this.collections = collections;
+    }
+
+    public String getName() {
+        return name;
     }
 
     /**
-     * Return the state of the feature flag. Returns true, if the feature flag is enabled, otherwise returns false.
-     *
-     * @return {@code true} or {@code false}
+     * Kept for backward compatibility. Same as "getName()".
      */
-    public Boolean isEnabled() {
-        return this.enabled;
-    }
-
-    /**
-     * Get the Feature name.
-     *
-     * @return the feature name
-     */
+    @JsonIgnore
     public String getFeatureName() {
-        return this.name;
+        return this.getName();
     }
 
-    /**
-     * Get the Feature Id.
-     *
-     * @return the feature id
-     */
     public String getFeatureId() {
-        return this.featureId;
+        return featureId;
     }
 
-    /**
-     * Get the enabled value of the feature.
-     *
-     * @return enabled value
-     */
-    public Object getEnabledValue() {
-        return enabledValue;
-    }
-
-    /**
-     * Get the disabled value of the feature.
-     *
-     * @return disabled value
-     */
-    public Object getDisabledValue() {
-        return disabledValue;
-    }
-
-    /**
-     * Get the feature data type.
-     *
-     * @return string named BOOLEAN/STRING/NUMERIC
-     */
-    public ConfigurationType getFeatureDataType() {
+    public ConfigurationType getType() {
         return type;
     }
 
     /**
-     * Get the feature format type.
+     * Kept for backward compatibility. Same as "getType()".
      *
-     * @return string named TEXT/JSON/YAML/null
+     * @return string named BOOLEAN/STRING/NUMERIC
      */
-    public String getFeatureDataFormat() {
+    @JsonIgnore
+    public ConfigurationType getFeatureDataType() {
+        return this.getType();
+    }
+
+    public String getFormat() {
         if (this.type.equals(ConfigurationType.STRING) && this.format == null) {
             return "TEXT";
         }
@@ -133,21 +142,45 @@ public class Feature {
     }
 
     /**
-     * Get the rules of the Segment targeted.
+     * Kept for backward compatibility. Same as "getFormat()".
      *
-     * @return segment rules
+     * @return string named TEXT/JSON/YAML/null
      */
-    public JSONArray getSegmentRules() {
+    @JsonIgnore
+    public String getFeatureDataFormat() {
+        return this.getFormat();
+    }
+
+    public Object getEnabledValue() {
+        return enabledValue;
+    }
+
+    public Object getDisabledValue() {
+        return disabledValue;
+    }
+
+    public List<SegmentRules> getSegmentRules() {
         return segmentRules;
     }
 
+    public Boolean getEnabled() {
+        return enabled;
+    }
+
     /**
-     * Get the Feature rolloutPercentage.
-     *
-     * @return the feature rolloutPercentage
+     * Kept for backward compatibility. Same as "getEnabled()".
      */
+    @JsonIgnore
+    public Boolean isEnabled() {
+        return this.getEnabled();
+    }
+
     public Integer getRolloutPercentage() {
-        return rolloutPercentage;
+        return rolloutPercentage != null ? rolloutPercentage : ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE;
+    }
+
+    public List<Collection> getCollections() {
+        return collections;
     }
 
     /**
@@ -165,7 +198,6 @@ public class Feature {
      * @return {boolean|string|number|null} Returns one of the Enabled/Disabled/Overridden value based on the evaluation.
      */
     public Object getCurrentValue(String entityId, JSONObject entityAttributes) {
-
         if (!Validators.validateString(entityId)) {
             BaseLogger.error("A valid entity id should be passed for this method.");
             return null;

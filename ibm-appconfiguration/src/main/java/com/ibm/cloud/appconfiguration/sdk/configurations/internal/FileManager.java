@@ -17,95 +17,55 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
-import org.json.JSONObject;
+import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
 
-import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.HashMap;
 
 /**
  * Class consisting of methods that perform all the file related operations.
  */
 public class FileManager {
 
-    private static final String fileName = "appconfiguration.json";
+    private static final String FILE_NAME = "appconfiguration.json";
 
     private FileManager() {
     }
 
-    private static String getCacheUrl() {
-        Path source = Paths.get(FileManager.class.getResource("/").getPath());
-        String path = source.toAbsolutePath() + "/" + fileName;
-        return path;
+    public static Path sanitizePath(String input) {
+        if (input == null || input.trim().isEmpty()) {
+            throw new IllegalArgumentException("Path cannot be null or empty");
+        }
+        return Paths.get(input).normalize().toAbsolutePath();
     }
 
-    /**
-     * Write the given data to SDK defined file path.
-     *
-     * @param hashMapData the data to write
-     * @return boolean value that indicates file write operations is successful or not
-     */
-    public static Boolean storeFile(HashMap hashMapData) {
-        if (hashMapData.isEmpty() || hashMapData == null) {
-            return false;
-        }
+    public static Path joinPath(String directory, String fileName) {
+        return sanitizePath(directory).resolve(fileName).normalize();
+    }
+
+    public static String readFile(String filePath) {
+        Path path = sanitizePath(filePath);
         try {
-            String path = FileManager.getCacheUrl();
-            File targetFile = new File(path);
-            boolean success = targetFile.createNewFile();
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.writeValue(Paths.get(path).toFile(), hashMapData);
-        } catch (Exception e) {
-            AppConfigException.logException("FileManager", "storeFile", e);
-            return false;
+            byte[] bytes = Files.readAllBytes(path);
+            return new String(bytes, StandardCharsets.UTF_8);
+        } catch (IOException e) {
+            BaseLogger.error("Error while reading file: " + path + " -> " + e);
+            return "";
         }
-        return true;
     }
 
-
-    public static Boolean createAndStoreFile(HashMap hashMapData, String dirPath) {
-        if (hashMapData.isEmpty() || hashMapData == null) {
-            return false;
-        }
+    public static void writeFile(String data, String directoryPath) {
+        if (data == null) data = "";
+        Path dir = sanitizePath(directoryPath);
+        Path file = joinPath(directoryPath, FILE_NAME);
         try {
-            File targetFile = new File(dirPath);
-            boolean success = targetFile.createNewFile();
-            ObjectMapper mapper = new ObjectMapper();
-            mapper.writeValue(Paths.get(dirPath).toFile(), hashMapData);
-        } catch (Exception e) {
-            AppConfigException.logException("FileManager", "storeFile", e);
-            return false;
+            Files.createDirectories(dir);
+            Files.write(file, data.getBytes(StandardCharsets.UTF_8));
+        } catch (IOException e) {
+            BaseLogger.error("Error while writing to file: " + file + " -> " + e);
         }
-        return true;
-    }
-
-    /**
-     * Read the data from the given file path.
-     *
-     * @param filePath the path of the file
-     * @return the file data
-     */
-    public static JSONObject readFiles(String filePath) {
-
-        String path = filePath;
-        HashMap<?, ?> data = new HashMap<>();
-        if (filePath == null) {
-            path = FileManager.getCacheUrl();
-        }
-        readFiles: try {
-            File targetFile = new File(path);
-            boolean success = targetFile.createNewFile();
-            if (targetFile.length() == 0) {
-                break readFiles;
-            }
-            ObjectMapper mapper = new ObjectMapper();
-            data = mapper.readValue(Paths.get(path).toFile(), HashMap.class);
-        } catch (Exception e) {
-            AppConfigException.logException("FileManager", "readFiles", e);
-        }
-        return new JSONObject(data);
     }
 }

@@ -32,6 +32,7 @@ import com.ibm.cloud.sdk.core.util.ResponseConverterUtils;
 import org.json.JSONObject;
 
 import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Properties;
@@ -131,8 +132,7 @@ public class ServiceImpl extends BaseService {
      * @return formatted current date
      */
     public static String getCurrentDateTime() {
-        Instant currentDateTimeInstant = Instant.now();
-        return String.valueOf(currentDateTimeInstant).split("\\.")[0] + "Z";
+        return Instant.now().truncatedTo(ChronoUnit.SECONDS).toString();
     }
 
     private HashMap<String, String> getServiceHeaders() {

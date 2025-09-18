@@ -6,7 +6,7 @@
 
     <groupId>com.ibm.cloud</groupId>
     <artifactId>appconfiguration-java-sdk</artifactId>
-    <version>0.3.8</version>
+    <version>0.3.9</version>
     <packaging>jar</packaging>
 
     <name>IBM Cloud App Configuration Java server SDK</name>
@@ -36,16 +36,6 @@
         <developerConnection>scm:git:ssh://github.com:IBM/appconfiguration-java-sdk.git</developerConnection>
         <url>https://www.github.com/IBM/appconfiguration-java-sdk/tree/master</url>
     </scm>
-    <distributionManagement>
-        <snapshotRepository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/content/repositories/snapshots</url>
-        </snapshotRepository>
-        <repository>
-            <id>ossrh</id>
-            <url>https://oss.sonatype.org/service/local/staging/deploy/maven2/</url>
-        </repository>
-    </distributionManagement>
 
     <dependencies>
         <dependency>
@@ -78,7 +68,7 @@
         <dependency>
             <groupId>com.ibm.cloud</groupId>
             <artifactId>sdk-core</artifactId>
-            <version>9.18.7</version>
+            <version>9.24.3</version>
         </dependency>
         <dependency>
             <groupId>commons-codec</groupId>
@@ -161,15 +151,15 @@
                 </executions>
             </plugin>
             <plugin>
-                <groupId>org.sonatype.plugins</groupId>
-                <artifactId>nexus-staging-maven-plugin</artifactId>
-                <version>1.6.13</version>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.8.0</version>
                 <extensions>true</extensions>
                 <configuration>
-                    <serverId>ossrh</serverId>
-                    <nexusUrl>https://oss.sonatype.org/</nexusUrl>
-                    <autoReleaseAfterClose>true</autoReleaseAfterClose>
-                    <keepStagingRepositoryOnCloseRuleFailure>true</keepStagingRepositoryOnCloseRuleFailure>
+                    <publishingServerId>central</publishingServerId>
+                    <!-- DANGER: Uncomment to publish automatically -->
+                    <!-- <autoPublish>true</autoPublish> -->
+                    <!-- <waitUntil>published</waitUntil> -->
                 </configuration>
             </plugin>
             <plugin>

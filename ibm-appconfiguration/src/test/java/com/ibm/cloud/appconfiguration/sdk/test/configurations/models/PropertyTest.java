@@ -22,6 +22,8 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -30,21 +32,8 @@ public class PropertyTest {
 
     Property sut;
     public void setUpStringProperty(ConfigurationType type, Object value, String format) {
-
-        JSONObject property = new JSONObject();
-        try {
-            property.put("name","defaultProperty");
-            property.put("property_id","defaultproperty");
-            property.put("type",type.toString());
-            property.put("value",value);
-            property.put("segment_rules",new JSONArray());
-            if (format != null) {
-                property.put("format", format);
-            }
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-        this.sut = new Property(property);
+        this.sut = new Property("defaultProperty", "defaultproperty", type, value, new ArrayList<>());
+        this.sut.setFormat(format);
     }
 
 
@@ -106,7 +95,7 @@ public class PropertyTest {
 
     @Test
     public void testPropertyException() {
-        this.sut = new Property(new JSONObject());
+        this.sut = new Property(null, null, null, null, null);
         assertNull(this.sut.getPropertyId());
         assertNull(this.sut.getPropertyName());
         assertNull(this.sut.getValue());

@@ -16,38 +16,47 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.models.internal;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
-import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
-import org.json.JSONArray;
-import org.json.JSONObject;
+
+import java.util.List;
 
 /**
  * Defines the model of a segment rule defined in App Configuration service.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class SegmentRules {
 
-    Integer order;
-    Object value;
-    JSONArray rules;
-    Object rolloutPercentage;
+    @JsonProperty("rules")
+    private List<RuleElem> rules;
 
-    /**
-     * @param segmentRulesJson segment_rules JSON object that contains all the segment rules
-     */
-    public SegmentRules(JSONObject segmentRulesJson) {
-        try {
-            this.order = segmentRulesJson.getInt("order");
-            this.value = segmentRulesJson.get(ConfigConstants.VALUE);
-            this.rules = segmentRulesJson.getJSONArray(ConfigConstants.RULES);
-            if (segmentRulesJson.has(ConfigConstants.ROLLOUT_PERCENTAGE)) {
-                this.rolloutPercentage = segmentRulesJson.get(ConfigConstants.ROLLOUT_PERCENTAGE);
-            } else {
-                this.rolloutPercentage = ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE;
-            }
+    @JsonProperty("value")
+    private Object value;
 
-        } catch (Exception e) {
-            AppConfigException.logException(this.getClass().getName(), "SegmentRules.init", e, new Object[]{"Invalid action in SegmentRules class."});
-        }
+    @JsonProperty("order")
+    private Integer order;
+
+    @JsonProperty("rollout_percentage")
+    private Object rolloutPercentage;
+
+    // Constructor for Jackson with required field validation
+    @JsonCreator
+    public SegmentRules(
+        @JsonProperty(value = "rules", required = true) List<RuleElem> rules,
+        @JsonProperty(value = "value", required = true) Object value,
+        @JsonProperty(value = "order", required = true) Integer order
+    ) {
+        this.rules = rules;
+        this.value = value;
+        this.order = order;
+    }
+
+    // optional field, set it post-creation
+    @JsonProperty("rollout_percentage")
+    public void setRolloutPercentage(Object rolloutPercentage) {
+        this.rolloutPercentage = rolloutPercentage;
     }
 
     /**
@@ -67,7 +76,7 @@ public class SegmentRules {
     /**
      * @return the rules array of the segment_rules object
      */
-    public JSONArray getRules() {
+    public List<RuleElem> getRules() {
         return rules;
     }
 
@@ -75,6 +84,6 @@ public class SegmentRules {
      * @return the rolloutPercentage in the segment_rules object
      */
     public Object getRolloutPercentage() {
-        return rolloutPercentage;
+        return rolloutPercentage != null ? rolloutPercentage : ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE;
     }
 }

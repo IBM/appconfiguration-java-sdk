@@ -16,10 +16,15 @@
 
 package com.ibm.cloud.appconfiguration.sdk.test.configurations.models;
 
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.Rule;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.Segment;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+
+import java.util.ArrayList;
+import java.util.Collections;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class SegmentTest {
@@ -27,37 +32,10 @@ public class SegmentTest {
     Segment sut;
 
     public void setUp() {
-        JSONObject segment = new JSONObject();
-
-        try {
-
-            JSONObject rules1 = new JSONObject();
-            JSONArray values1 = new JSONArray();
-            values1.put(100);
-            JSONObject rules2 = new JSONObject();
-            JSONArray values2 = new JSONArray();
-            values2.put(50);
-
-            rules1.put("values",values1);
-            rules1.put("operator","lesserThanEquals");
-            rules1.put("attribute_name","radius");
-
-            rules2.put("values",values2);
-            rules2.put("operator","lesserThan");
-            rules2.put("attribute_name","cityRadius");
-
-            JSONArray rules = new JSONArray();
-            rules.put(rules1);
-            rules.put(rules2);
-
-            segment.put("name","RegionalUser");
-            segment.put("segment_id","kdu77n4s");
-            segment.put("rules",rules);
-
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-        this.sut = new Segment(segment);
+        ArrayList<Rule> rulesList = new ArrayList<>();
+        rulesList.add(new Rule("radius", "lesserThanEquals", Collections.singletonList(100)));
+        rulesList.add(new Rule("cityRadius", "lesserThan", Collections.singletonList(50)));
+        this.sut = new Segment("RegionalUser", "kdu77n4s", rulesList);
     }
 
     @Test
@@ -75,7 +53,7 @@ public class SegmentTest {
 
             assertEquals(sut.getName(),"RegionalUser" );
             assertEquals(sut.getSegmentId(),"kdu77n4s" );
-            assertEquals(sut.getRules().length(),2 );
+            assertEquals(sut.getRules().size(),2 );
         } catch (Exception e) {
             System.out.println(e);
             assertFalse(true);
@@ -85,7 +63,7 @@ public class SegmentTest {
 
     @Test
     public void testSegmentException() {
-        this.sut = new Segment(new JSONObject());
+        this.sut = new Segment(null, null, null);
         assertNull(this.sut.getName());
         assertNull(this.sut.getRules());
         assertNull(this.sut.getSegmentId());

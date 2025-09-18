@@ -62,7 +62,7 @@ public class AppConfigurationTest {
 
         Path resourceDirectory = Paths.get("src","test","resources");
         String absolutePath = resourceDirectory.toFile().getAbsolutePath();
-        appConfiguration.setContext("collectionId", "environmentId", absolutePath + "/user.json",false);
+        appConfiguration.setContext("collection", "dev", absolutePath + "/user.json",false);
 
         appConfiguration.fetchConfigurations();
 
@@ -107,7 +107,7 @@ public class AppConfigurationTest {
 		//appConfiguration.setContext("collectionId", "environmentId", absolutePath, false);
 
 		appConfiguration.init("region", "guid", "apikey");
-		appConfiguration.setContext("collectionId", "environmentId", op);
+		appConfiguration.setContext("collection", "dev", op);
 		appConfiguration.fetchConfigurations();
 
 		assertTrue(appConfiguration.getFeatures().size() == 3);

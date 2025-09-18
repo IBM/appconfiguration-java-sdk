@@ -1,105 +1,113 @@
 {
-    "features": [
+    "environments": [
         {
-            "name": "defaultFeature",
-            "feature_id": "defaultfeature",
-            "type": "STRING",
-            "enabled_value": "hello",
-            "disabled_value": "Bye",
-            "rollout_percentage": 99,
-            "segment_rules": [
+            "name": "Dev",
+            "environment_id": "dev",
+            "features": [
                 {
-                    "rules": [
+                    "name": "defaultFeature",
+                    "feature_id": "defaultfeature",
+                    "type": "STRING",
+                    "enabled_value": "hello",
+                    "disabled_value": "Bye",
+                    "rollout_percentage": 99,
+                    "segment_rules": [
                         {
-                            "segments": [
-                                "kg92d3wa"
-                            ]
+                            "rules": [
+                                {
+                                    "segments": [
+                                        "kg92d3wa"
+                                    ]
+                                }
+                            ],
+                            "value": "Welcome",
+                            "order": 1,
+                            "rollout_percentage": 99
                         }
                     ],
-                    "value": "Welcome",
-                    "order": 1,
-                    "rollout_percentage": 99
-                }
-            ],
-            "segment_exists": true,
-            "enabled": true
-        },
-        {
-            "name": "emailFeature",
-            "feature_id": "emailfeature",
-            "type": "STRING",
-            "enabled_value": "Org user",
-            "disabled_value": "unknown user",
-            "rollout_percentage": 99,
-            "segment_rules": [
+                    "segment_exists": true,
+                    "enabled": true
+                },
                 {
-                    "rules": [
+                    "name": "emailFeature",
+                    "feature_id": "emailfeature",
+                    "type": "STRING",
+                    "enabled_value": "Org user",
+                    "disabled_value": "unknown user",
+                    "rollout_percentage": 99,
+                    "segment_rules": [
                         {
-                            "segments": [
-                                "kfw38i6s"
-                            ]
+                            "rules": [
+                                {
+                                    "segments": [
+                                        "kfw38i6s"
+                                    ]
+                                }
+                            ],
+                            "value": "Test user",
+                            "order": 1,
+                            "rollout_percentage": 99
                         }
                     ],
-                    "value": "Test user",
-                    "order": 1,
-                    "rollout_percentage": 99
-                }
-            ],
-            "segment_exists": true,
-            "enabled": true
-        },
-        {
-            "name": "reqbody",
-            "feature_id": "reqbody",
-            "type": "NUMERIC",
-            "enabled_value": 5,
-            "disabled_value": 0,
-            "rollout_percentage": 99,
-            "segment_rules": [
+                    "segment_exists": true,
+                    "enabled": true
+                },
                 {
-                    "rules": [
+                    "name": "reqbody",
+                    "feature_id": "reqbody",
+                    "type": "NUMERIC",
+                    "enabled_value": 5,
+                    "disabled_value": 0,
+                    "rollout_percentage": 99,
+                    "segment_rules": [
                         {
-                            "segments": [
-                                "kdu78d93"
-                            ]
+                            "rules": [
+                                {
+                                    "segments": [
+                                        "kdu77n4s"
+                                    ]
+                                }
+                            ],
+                            "value": "19",
+                            "order": 1,
+                            "rollout_percentage": 99
                         }
                     ],
-                    "value": "19",
-                    "order": 1,
-                    "rollout_percentage": 99
+                    "segment_exists": true,
+                    "enabled": true
                 }
             ],
-            "segment_exists": true,
-            "enabled": true
+            "properties": [
+                {
+                    "name": "numericProperty",
+                    "property_id": "numericproperty",
+                    "tags": "test",
+                    "type": "NUMERIC",
+                    "value": 25,
+                    "segment_rules": [
+                        {
+                            "rules": [
+                                {
+                                    "segments": [
+                                        "keuyclvf"
+                                    ]
+                                }
+                            ],
+                            "value": 81,
+                            "order": 1
+                        }
+                    ],
+                    "segment_exists": true
+                }
+            ]
         }
     ],
-    "collection": {
-        "name": "appCrash",
-        "collection_id": "appcrash",
-        "features_count": 0,
-        "properties_count": 0
-    },
-    "properties": [
+    "collections": [
         {
-            "name": "numericProperty",
-            "property_id": "numericproperty",
-            "tags": "test",
-            "type": "NUMERIC",
-            "value": 25,
-            "segment_rules": [
-                {
-                    "rules": [
-                        {
-                            "segments": [
-                                "keuyclvf"
-                            ]
-                        }
-                    ],
-                    "value": 81,
-                    "order": 1
-                }
-            ],
-            "segment_exists": true
+            "name": "Collection",
+            "collection_id": "collection",
+            "features_count": 0,
+            "properties_count": 0
         }
     ],
     "segments": [

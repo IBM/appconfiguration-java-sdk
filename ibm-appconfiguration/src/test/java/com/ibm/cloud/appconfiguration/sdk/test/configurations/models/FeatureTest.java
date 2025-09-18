@@ -28,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 
 
 public class FeatureTest {
@@ -48,25 +49,9 @@ public class FeatureTest {
 
     public void setUpFeature(ConfigurationType type, Object disabled, Object enaabled, Boolean isEnabled,
                              String format) {
-        JSONObject feature = new JSONObject();
-        try {
-            feature.put("name","defaultFeature");
-            feature.put("feature_id","defaultfeature");
-            feature.put("type",type.toString());
-            feature.put("disabled_value",disabled);
-            feature.put("enabled_value",enaabled);
-            feature.put("enabled",isEnabled);
-            feature.put("segment_exists", false);
-            feature.put("segment_rules",new JSONArray());
-            feature.put("rollout_percentage",99);
-            if (format != null) {
-                feature.put("format", format);
-            }
-
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-        this.sut = new Feature(feature);
+        this.sut = new Feature("defaultFeature", "defaultfeature", type, enaabled, disabled, new ArrayList<>(), isEnabled);
+        this.sut.setFormat(format);
+        this.sut.setRolloutPercentage(99);
     }
 
 
@@ -147,7 +132,7 @@ public class FeatureTest {
 
     @Test
     public void testFeatureException() {
-        this.sut = new Feature(new JSONObject());
+        this.sut = new Feature(null, null, null, null, null, null, null);
         assertNull(this.sut.getFeatureId());
         assertNull(this.sut.getFeatureName());
         assertNull(this.sut.getFeatureDataType());

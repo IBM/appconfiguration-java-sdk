@@ -16,10 +16,14 @@
 
 package com.ibm.cloud.appconfiguration.sdk.test.configurations.models;
 
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.RuleElem;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.SegmentRules;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class SegmentRulesTest {
@@ -27,25 +31,10 @@ public class SegmentRulesTest {
     SegmentRules sut;
 
     public void setUpRules() {
-
-        JSONObject segmentRules = new JSONObject();
-        JSONArray rules = new JSONArray();
-        JSONArray segments = new JSONArray();
-        try {
-            segments.put("kg92d3wa");
-            JSONObject jsObj = new JSONObject();
-            jsObj.put("segments", segments);
-            rules.put(jsObj);
-
-            segmentRules.put("rules", rules);
-            segmentRules.put("value", "IBM user");
-            segmentRules.put("order", 1);
-
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-
-        this.sut = new SegmentRules(segmentRules);
+        this.sut = new SegmentRules(
+            Collections.singletonList(new RuleElem(Collections.singletonList("kg92d3wa"))),
+            "IBM user",
+            1);
     }
 
     @Test
@@ -54,13 +43,13 @@ public class SegmentRulesTest {
         Integer order = this.sut.getOrder();
         assertEquals(order.longValue(), 1);
         assertEquals(this.sut.getValue(), "IBM user");
-        assertEquals(this.sut.getRules().length(), 1);
+        assertEquals(this.sut.getRules().size(), 1);
 
     }
 
     @Test
     public void testSegmentRulesException() {
-        this.sut = new SegmentRules(new JSONObject());
+        this.sut = new SegmentRules(null, null, null);
         assertNull(this.sut.getOrder());
         assertNull(this.sut.getRules());
         assertNull(this.sut.getValue());

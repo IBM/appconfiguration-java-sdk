@@ -26,8 +26,5 @@ public class CoreMessages {
 
     }
 
-    public static final String REQUEST_TYPE_NOT_SUPPORTED = "The request is not allowed. Only GET and POST is allowed.";
-    public static final String REQUEST_CLIENT_INVALID = "The request is invalid.";
-    public static final String REQUEST_RESPONSE_ERROR = "Error while fetching the data from response.";
     public static final String GLOBAL_LOGGER_NAME = "AppConfigurationLogger";
 }

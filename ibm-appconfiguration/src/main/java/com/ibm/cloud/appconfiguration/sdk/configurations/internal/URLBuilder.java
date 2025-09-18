@@ -79,8 +79,8 @@ public class URLBuilder {
                 }
             }
 
-            configUrl = httpBase + String.format("%s%s%s/collections/%s/%s?environment_id=%s", service, featurePath, guid,
-                    collectionId, config, environmentId);
+            configUrl = httpBase + String.format("%s%s%s/%s?action=sdkConfig&collection_id=%s&environment_id=%s",
+                service, featurePath, guid, config, collectionId, environmentId);
             meteringUrl = httpBase + String.format("%s%s%s/%s", service, eventsPath, guid, usage);
             webSocketUrl = webSocketUrl + String.format("%s%s?instance_id=%s&collection_id=%s&environment_id=%s", service,
                     wsPath, guid, collectionId, environmentId);
