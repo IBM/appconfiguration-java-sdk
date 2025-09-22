@@ -20,12 +20,12 @@ import com.ibm.cloud.appconfiguration.sdk.configurations.models.Property;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationUpdateListener;
-import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigMessages;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationOptions;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
 
+import java.nio.file.Paths;
 import java.util.HashMap;
 
 /**
@@ -36,7 +36,7 @@ import java.util.HashMap;
  * Toggle feature flag states in the cloud to activate or deactivate features in your application or
  * environment, when required. You can also manage the properties for distributed applications centrally.
  *
- * @version 0.3.8
+ * @version 0.3.9
  * @see <a href="https://cloud.ibm.com/docs/app-configuration">App Configuration</a>
  */
 public class AppConfiguration {
@@ -156,31 +156,20 @@ public class AppConfiguration {
      *                     Set this value to `false` if the new configuration values shouldn't be fetched from the server.
      */
     public void setContext(String collectionId, String environmentId, ConfigurationOptions configOption) {
-
-        if (configOption != null) {
-            persistentCacheLocation = configOption.getPersistentCacheDirectory();
-            bootstrapFile = configOption.getBootstrapFile();
-            liveConfigUpdateEnabled = configOption.getLiveConfigUpdateEnabled();
-        }
-
-        if (liveConfigUpdateEnabled == null) {
-            liveConfigUpdateEnabled = true;
-            configOption.setLiveConfigUpdateEnabled(liveConfigUpdateEnabled);
-        }
-
-        if (persistentCacheLocation != null) {
-            persistentCacheLocation = persistentCacheLocation.endsWith("/")
-                    ? persistentCacheLocation + ConfigConstants.PERSISTENTCACHE_FILE
-                    : persistentCacheLocation + "/" + ConfigConstants.PERSISTENTCACHE_FILE;
-            configOption.setPersistentCacheDirectory(persistentCacheLocation);
-        }
-
-        //It will return if any one of the input is not valid
         if (!Validators.isValidRequest(collectionId, environmentId, isInitialized)) {
             return;
         }
 
-        //It will return if liveConfigUpdateEnabled is false and bootstrapFile is not passed
+        if (configOption != null) {
+            persistentCacheLocation = configOption.getPersistentCacheDirectory();
+            bootstrapFile = configOption.getBootstrapFile();
+            liveConfigUpdateEnabled = configOption.getLiveConfigUpdateEnabled() != null ? configOption.getLiveConfigUpdateEnabled() : true;
+        }
+
+        if (Validators.validateString(bootstrapFile) && !Paths.get(bootstrapFile).getFileName().toString().endsWith(".json")) {
+            BaseLogger.error(ConfigMessages.INVALID_BOOTSTRAP_FILE + " - " + bootstrapFile);
+        }
+
         if (!liveConfigUpdateEnabled && !Validators.validateString(bootstrapFile)) {
             BaseLogger.error(ConfigMessages.BOOTSTRAP_FILE_NOT_FOUND_ERROR);
             return;
@@ -200,14 +189,10 @@ public class AppConfiguration {
      *                                configuration file to perform feature and property evaluations.
      * @param liveConfigUpdateEnabled live configurations update from the server. Set this value to {@code false}
      *                                if the new configuration values shouldn't be fetched from the server.
-     *
      * @deprecated Use setContext(String, String, ConfigurationOptions) instead.
      */
     @Deprecated
-    public void setContext(String collectionId, String environmentId,
-                           String configurationFile, Boolean liveConfigUpdateEnabled) {
-
-        //It will return if any one of the input is not valid
+    public void setContext(String collectionId, String environmentId, String configurationFile, Boolean liveConfigUpdateEnabled) {
         if (!Validators.isValidRequest(collectionId, environmentId, isInitialized)) {
             return;
         }

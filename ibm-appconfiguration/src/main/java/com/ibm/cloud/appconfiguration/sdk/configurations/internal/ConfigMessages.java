@@ -36,11 +36,17 @@ public class ConfigMessages {
             + " and setContext operation. Please check the initialization and setContext sections for errors.";
     public static final String CONFIG_FILE_NOT_FOUND_ERROR = "configurationFile parameter should be provided while liveConfigUpdateEnabled is false during initialization";
     public static final String BOOTSTRAP_FILE_NOT_FOUND_ERROR = "bootstrapFile parameter should be provided while liveConfigUpdateEnabled is false during initialization";
+    public static final String INVALID_BOOTSTRAP_FILE = "Invalid value provided for BootstrapFile parameter";
     public static final String CONFIG_HANDLER_INIT_ERROR = "Invalid action in ConfigurationHandler. This action can be performed only after a successful initialization."
             + " Please check the initialization section for errors.";
     public static final String CONFIG_API_ERROR = "Invalid configuration. Verify the collectionId, environmentId, apikey, guid and region.";
     public static final String FEATURE_INVALID = "Invalid featureId - ";
     public static final String PROPERTY_INVALID = "Invalid propertyId - ";
     public static final String FETCH_API_SUCCESSFUL = "Successfully fetched the configurations.";
-    public static final String API_RETRY_SCHEDULED_MESSAGE = "Scheduled the API request to retry after 10 minutes.";
+    public static final String API_RETRY_SCHEDULED_MESSAGE = "Scheduled the API request to retry after %s seconds.";
+    public static final String READ_PERSISTENCE_CACHE = "Reading configurations from persistent cache: ";
+    public static final String ERROR_READ_PERSISTENCE_CACHE = "Error occurred while reading persistent cache configurations - ";
+    public static final String READ_BOOTSTRAP_CONFIGURATIONS = "Reading configurations from bootstrap file: ";
+    public static final String ERROR_READ_BOOTSTRAP_CONFIGURATIONS = "Error occurred while reading bootstrap configurations - ";
+    public static final String ERROR_READ_FETCHED_CONFIGURATIONS = "Error occurred while reading fetched configurations - ";
 }

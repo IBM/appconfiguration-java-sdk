@@ -16,9 +16,11 @@
 
 package com.ibm.cloud.appconfiguration.sdk.test.configurations;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationUpdateListener;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.Collection;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationOptions;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.Property;
@@ -27,14 +29,17 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Collections;
 import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 public class ConfigurationHandlerTest {
 
     @Test
-    public void testEvaluations() throws InterruptedException {
+    public void testEvaluations() throws InterruptedException, JsonProcessingException {
 
         ConfigurationHandler configurationHandler = ConfigurationHandler.getInstance();
         configurationHandler.loadData();
@@ -44,7 +49,7 @@ public class ConfigurationHandlerTest {
         ConfigurationOptions configOption = new ConfigurationOptions();
         configOption.setBootstrapFile(absolutePath + "/user.json");
         configOption.setLiveConfigUpdateEnabled(false);
-        configurationHandler.setContext(ConfigConstants.COLLECTION_ID, ConfigConstants.ENVIRONMENT_ID, configOption);
+        configurationHandler.setContext("collection", "dev", configOption);
         configurationHandler.loadData();
         final Boolean[] onData = {false};
         configurationHandler.registerConfigurationUpdateListener(new ConfigurationUpdateListener() {
@@ -57,16 +62,17 @@ public class ConfigurationHandlerTest {
 
 
 
-        String propertyJson = "{\"name\":\"numericProperty\",\"property_id\":\"numericproperty\",\"description\":\"testing prop\",\"value\":10,\"type\":\"NUMERIC\",\"tags\":\"test\",\"segment_rules\":[{\"rules\":[{\"segments\":[\"keuyclvf\"]}],\"value\":81,\"order\":1}],\"collections\":[{\"collection_id\":\"appcrash\"}]}";
+        String propertyJson = "{\"name\":\"numericProperty\",\"property_id\":\"numericproperty\",\"description\":\"testing prop\",\"value\":10,\"type\":\"NUMERIC\",\"tags\":\"test\",\"segment_rules\":[{\"rules\":[{\"segments\":[\"keuyclvf\"]}],\"value\":81,\"order\":1}],\"collections\":[{\"collection_id\":\"appcrash\", \"name\":\"appcrash\"}]}";
         String featureJson = "{\"name\":\"defaultFeature\",\"feature_id\":\"defaultfeature\",\"type\":\"STRING\",\"enabled_value\":\"hello\",\"disabled_value\":\"Bye\",\"rollout_percentage\":100,\"segment_rules\":[{\"rules\":[{\"segments\":[\"kg92d3wa\"]}],\"value\":\"Welcome\",\"rollout_percentage\":100,\"order\":1}],\"segment_exists\":true,\"enabled\":true}";
 
         JSONObject featureJsonObject = new JSONObject(featureJson);
         JSONObject propertyJsonObject = new JSONObject(propertyJson);
 
+        ObjectMapper mapper = new ObjectMapper();
 
+        Feature featureObj = mapper.readValue(featureJsonObject.toString(), Feature.class);
 
-        Feature featureObj = new Feature(featureJsonObject);
-        Property propertyObj = new Property(propertyJsonObject);
+        Property propertyObj = mapper.readValue(propertyJsonObject.toString(), Property.class);
 
 
         JSONObject entityObj = new JSONObject();

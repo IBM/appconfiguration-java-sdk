@@ -16,55 +16,53 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.models.internal;
 
-import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
-import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.util.List;
 
 /**
  *  Defines the model of a segment defined in App Configuration service.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Segment {
 
-    String name;
-    String segmentId;
-    JSONArray rules;
+    @JsonProperty("name")
+    private String name;
+
+    @JsonProperty("segment_id")
+    private String segmentId;
+
+    @JsonProperty("rules")
+    private List<Rule> rules;
+
     private final String className = this.getClass().getName();
 
-    /**
-     * @param segmentJson segments JSON object that contains all the segments
-     */
-    public Segment(JSONObject segmentJson) {
-        try {
-            this.name = segmentJson.getString(ConfigConstants.NAME);
-            this.segmentId = segmentJson.getString(ConfigConstants.SEGMENT_ID);
-            this.rules = segmentJson.getJSONArray(ConfigConstants.RULES);
-
-        } catch (Exception e) {
-            AppConfigException.logException(this.className, "Segment.init", e,
-                    new Object[]{"Invalid action in Segment class. "});
-        }
+    // Constructor for Jackson with required field validation
+    @JsonCreator
+    public Segment(
+        @JsonProperty(value = "name", required = true) String name,
+        @JsonProperty(value = "segment_id", required = true) String segmentId,
+        @JsonProperty(value = "rules", required = true) List<Rule> rules
+    ) {
+        this.name = name;
+        this.segmentId = segmentId;
+        this.rules = rules;
     }
 
-    /**
-     * @return rules of the segment
-     */
-    public JSONArray getRules() {
-        return rules;
-    }
-
-    /**
-     * @return segment name
-     */
     public String getName() {
         return name;
     }
 
-    /**
-     * @return segment id
-     */
     public String getSegmentId() {
         return segmentId;
+    }
+
+    public List<Rule> getRules() {
+        return rules;
     }
 
     /**
@@ -74,16 +72,19 @@ public class Segment {
      * @return {@code true} is evaluation is passed. {@code false} otherwise
      */
     public Boolean evaluateRule(JSONObject entityAttributes) {
+        if (rules == null || rules.isEmpty()) {
+            return false;
+        }
 
-        for (int index = 0; index < this.rules.length(); index++) {
+        for (Rule rule : rules) {
             try {
-                Rule rule = new Rule(this.rules.getJSONObject(index));
                 if (!rule.evaluateRule(entityAttributes)) {
                     return false;
                 }
             } catch (Exception e) {
                 AppConfigException.logException(this.className, "evaluateRule", e,
-                        new Object[]{"Invalid action in Segment class."});
+                    new Object[]{"Invalid action in Segment class."});
+                return false;
             }
         }
         return true;

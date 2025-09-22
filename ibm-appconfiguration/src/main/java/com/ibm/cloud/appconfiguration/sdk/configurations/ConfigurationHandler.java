@@ -16,9 +16,10 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ResultExtractConfigurations;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.CacheConfig;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.RuleElem;
 import com.ibm.cloud.appconfiguration.sdk.core.ServiceImpl;
-import com.ibm.cloud.appconfiguration.sdk.configurations.models.Property;
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
 import com.ibm.cloud.appconfiguration.sdk.core.CoreConstants;
@@ -33,20 +34,23 @@ import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Socket;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.SocketHandler;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.URLBuilder;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
-import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationOptions;
-import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Utils;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.Segment;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.SegmentRules;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.ConfigurationOptions;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.Feature;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.Property;
 import com.ibm.cloud.sdk.core.http.HttpHeaders;
 import com.ibm.cloud.sdk.core.http.Response;
 import com.ibm.cloud.sdk.core.security.IamAuthenticator;
 import com.ibm.cloud.sdk.core.service.exception.ServiceResponseException;
 
 import org.apache.commons.codec.digest.MurmurHash3;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.nio.file.Path;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -63,9 +67,9 @@ public class ConfigurationHandler {
     private String region = "";
     private Boolean isInitialized = false;
     private ConfigurationUpdateListener configurationUpdateListener = null;
-    private HashMap<String, Feature> featureMap = new HashMap();
-    private HashMap<String, Property> propertyMap = new HashMap();
-    private HashMap<String, Segment> segmentMap = new HashMap();
+    private HashMap<String, Feature> featureMap = new HashMap<>();
+    private HashMap<String, Property> propertyMap = new HashMap<>();
+    private HashMap<String, Segment> segmentMap = new HashMap<>();
     private Boolean liveConfigUpdateEnabled = true;
     private String bootstrapFile = null;
     private Boolean onSocketRetry = false;
@@ -75,6 +79,8 @@ public class ConfigurationHandler {
 
     private RetryHandler configRetry;
     private RetryHandler socketRetry;
+    private final int configRetryInterval = 120000; // 2 minutes
+    private final int socketRetryInterval = 15000; // 15 seconds
 
     private Socket socket = null;
     private SocketHandler socketHandler;
@@ -98,9 +104,9 @@ public class ConfigurationHandler {
     /**
      * Initialize the configurations.
      *
-     * @param apikey apikey of App Configuration service instance
-     * @param guid guid/instanceId of App Configuration service instance
-     * @param region region name of App Configuration service instance
+     * @param apikey             apikey of App Configuration service instance
+     * @param guid               guid/instanceId of App Configuration service instance
+     * @param region             region name of App Configuration service instance
      * @param overrideServiceUrl service url. Use for testing purpose
      * @param usePrivateEndpoint If true, use private endpoint to connect to App Configuration service instance.
      */
@@ -117,17 +123,17 @@ public class ConfigurationHandler {
     }
 
     /**
-     * @param collectionId collection id
+     * @param collectionId  collection id
      * @param environmentId environment id
-     * @param configOption configOption object contains three fields
-     *                     configOption.persistentCacheDir : The SDK will create a file - 'appconfiguration.json'
-     *                     in the specified directory and it will be used as the persistent cache to store the
-     *                     App Configuration service information.
-     *                     configOption.bootstrapFile : Absolute path of configuration file. This parameter
-     *                     when passed along with `liveConfigUpdateEnabled` value will drive the SDK to use the
-     *                     configurations present in this file to perform feature and property evaluations
-     *                     configOption.liveConfigUpdateEnabled : live configurations update from the server.
-     *                     Set this value to `false` if the new configuration values shouldn't be fetched from the server.
+     * @param configOption  configOption object contains three fields
+     *                      configOption.persistentCacheDir : The SDK will create a file - 'appconfiguration.json'
+     *                      in the specified directory and it will be used as the persistent cache to store the
+     *                      App Configuration service information.
+     *                      configOption.bootstrapFile : Absolute path of configuration file. This parameter
+     *                      when passed along with `liveConfigUpdateEnabled` value will drive the SDK to use the
+     *                      configurations present in this file to perform feature and property evaluations
+     *                      configOption.liveConfigUpdateEnabled : live configurations update from the server.
+     *                      Set this value to `false` if the new configuration values shouldn't be fetched from the server.
      */
     public void setContext(String collectionId, String environmentId, ConfigurationOptions configOption) {
         if (configOption != null) {
@@ -135,77 +141,67 @@ public class ConfigurationHandler {
             this.bootstrapFile = configOption.getBootstrapFile();
             this.persistentCacheLocation = configOption.getPersistentCacheDirectory();
         }
+        this.liveConfigUpdateEnabled = this.liveConfigUpdateEnabled != null ? this.liveConfigUpdateEnabled : true;
         this.collectionId = collectionId;
         this.environmentId = environmentId;
         URLBuilder.initWithContext(collectionId, environmentId, region, guid, overrideServiceUrl, usePrivateEndpoint);
         Metering.getInstance().setMeteringUrl(URLBuilder.getMeteringUrl(), apikey);
         this.isInitialized = true;
 
-        if (this.liveConfigUpdateEnabled) {
-            // if live config update is enabled, start a daemon Timer thread that periodically checks the internet connectivity
-            connectivity = Connectivity.getInstance();
-            connectivity.addConnectivityListener(this::connectionHandler);
-        }
-        loadDataByConfiguration();
-    }
-
-    private void loadDataByConfiguration() {
-        if (Validators.validateString(persistentCacheLocation) && Validators.validateString(bootstrapFile)) {
-            loadBootStrapFileAndPersistanceData(bootstrapFile, persistentCacheLocation, liveConfigUpdateEnabled);
-        } else if (Validators.validateString(persistentCacheLocation)) {
-            loadPersistanceCacheData(persistentCacheLocation);
-        } else if (Validators.validateString(bootstrapFile)) {
-            loadBootstrapFileData(bootstrapFile, liveConfigUpdateEnabled);
-        } else if (!Validators.validateString(persistentCacheLocation) && !Validators.validateString(bootstrapFile)) {
-            loadData();
-        }
-    }
-
-    /*
-     *  it will create the configuration file in given directory.
-     *  it will read the data from the file and populate it map
-     *  make the API call and populate the response in maps and also store the response in persistentCacheDir file
-     */
-    private void loadPersistanceCacheData(String persistentCacheDir) {
-        JSONObject data = FileManager.readFiles(persistentCacheDir);
-        loadConfigurationsAndPopulateInMap(data);
         loadData();
     }
-
-    private void loadBootstrapFileData(String bootstrapFile, Boolean liveConfigUpdateEnabled) {
-        JSONObject data = FileManager.readFiles(bootstrapFile);
-        loadConfigurationsAndPopulateInMap(data);
-        loadData();
-    }
-
-    private void loadBootStrapFileAndPersistanceData(String bootstrapFile, String persistentCacheDir, Boolean liveConfigUpdateEnabled) {
-        JSONObject persistentData = FileManager.readFiles(persistentCacheDir);
-        if (!persistentData.isEmpty()) {
-            loadConfigurationsAndPopulateInMap(persistentData);
-        } else {
-            JSONObject data = FileManager.readFiles(bootstrapFile);
-            loadConfigurationsAndPopulateInMap(data);
-            try {
-                HashMap<String, Object> map = new ObjectMapper().readValue(data.toString(), HashMap.class);
-                FileManager.createAndStoreFile(map, persistentCacheDir);
-            } catch (Exception e) {
-                AppConfigException.logException(this.className, " loadBootStrapFileAndPersistanceData", e);
-            }
-        }
-        loadData();
-    }
-
 
     public synchronized void loadData() {
-        if (this.isInitialized) {
-            if (this.liveConfigUpdateEnabled) {
-                this.fetchConfigData();
-            } else if (this.socket != null) {
-                this.socket.cancel();
-                this.socket = null;
+        String methodName = "loadData";
+        boolean persistentCacheRead = false;
+
+        if (Validators.validateString(persistentCacheLocation)) {
+            Path path = FileManager.joinPath(persistentCacheLocation, ConfigConstants.PERSISTENCE_CACHE_FILE);
+            BaseLogger.info(ConfigMessages.READ_PERSISTENCE_CACHE + path);
+            String persistentData = FileManager.readFile(path.toString());
+            if (!persistentData.isEmpty()) {
+                ResultExtractConfigurations persistenceConfig = Utils.extractConfigurations(persistentData, this.environmentId, this.collectionId);
+                if (persistenceConfig.isSuccess()) {
+                    loadConfigurationsInCache(persistenceConfig.getConfig());
+                    persistentCacheRead = true;
+                } else {
+                    BaseLogger.error(ConfigMessages.ERROR_READ_PERSISTENCE_CACHE + persistenceConfig.getErrorMessage());
+                }
             }
-        } else {
-            BaseLogger.debug(ConfigMessages.CONFIG_HANDLER_INIT_ERROR);
+        }
+        if (Validators.validateString(bootstrapFile)) {
+            Path path = FileManager.sanitizePath(bootstrapFile);
+            if (Validators.validateString(persistentCacheLocation)) {
+                if (!persistentCacheRead) {
+                    BaseLogger.info(ConfigMessages.READ_BOOTSTRAP_CONFIGURATIONS + path);
+                    String bootstrapFileData = FileManager.readFile(path.toString());
+                    ResultExtractConfigurations bootstrapConfig = Utils.extractConfigurations(bootstrapFileData, this.environmentId, this.collectionId);
+                    if (bootstrapConfig.isSuccess()) {
+                        loadConfigurationsInCache(bootstrapConfig.getConfig());
+                        FileManager.writeFile(Utils.formatConfig(bootstrapConfig.getConfig(), this.environmentId, this.collectionId), persistentCacheLocation);
+                    } else {
+                        BaseLogger.error(ConfigMessages.ERROR_READ_BOOTSTRAP_CONFIGURATIONS + bootstrapConfig.getErrorMessage());
+                    }
+                }
+            } else {
+                BaseLogger.info(ConfigMessages.READ_BOOTSTRAP_CONFIGURATIONS + path);
+                String bootstrapFileData = FileManager.readFile(path.toString());
+                ResultExtractConfigurations bootstrapConfig = Utils.extractConfigurations(bootstrapFileData, this.environmentId, this.collectionId);
+                if (bootstrapConfig.isSuccess()) {
+                    loadConfigurationsInCache(bootstrapConfig.getConfig());
+                } else {
+                    BaseLogger.error(ConfigMessages.ERROR_READ_BOOTSTRAP_CONFIGURATIONS + bootstrapConfig.getErrorMessage());
+                }
+            }
+        }
+        if (this.liveConfigUpdateEnabled) {
+            // start a daemon Timer thread that periodically checks the internet connectivity
+            connectivity = Connectivity.getInstance();
+            connectivity.addConnectivityListener(this::connectionHandler);
+            this.fetchConfigData();
+        } else if (this.socket != null) {
+            this.socket.cancel();
+            this.socket = null;
         }
     }
 
@@ -260,7 +256,6 @@ public class ConfigurationHandler {
         if (featureMap.containsKey(featureId)) {
             return featureMap.get(featureId);
         }
-        //Removed code which is not required
         BaseLogger.error(ConfigMessages.FEATURE_INVALID + featureId);
         return null;
     }
@@ -301,6 +296,7 @@ public class ConfigurationHandler {
             Map<String, String> headers = new HashMap<>();
             headers.put(HttpHeaders.AUTHORIZATION,
                     iamAuthenticator.requestToken().getTokenType() + " " + iamAuthenticator.getToken());
+            headers.put(HttpHeaders.USER_AGENT, ServiceImpl.getArtifactId() + "/" + ServiceImpl.getVersion());
 
             if (this.socket != null) {
                 this.socket.cancel();
@@ -314,64 +310,45 @@ public class ConfigurationHandler {
         }
     }
 
-
-    public void loadConfigurationsAndPopulateInMap(JSONObject data) {
-
-        String methodName = "loadConfigurationsAndPopulateInMap";
-
-        if (!data.isEmpty()) {
-            if (data.has(ConfigConstants.FEATURES)) {
+    public void loadConfigurationsInCache(CacheConfig config) {
+        if (config != null) {
+            // Load features
+            if (config.getFeatures() != null) {
                 this.featureMap = new HashMap<>();
-                try {
-                    JSONArray array = (JSONArray) data.get(ConfigConstants.FEATURES);
-                    for (int i = 0; i < array.length(); i++) {
-                        JSONObject featureJson = array.getJSONObject(i);
-                        Feature feature = new Feature(featureJson);
+                for (Feature feature : config.getFeatures()) {
+                    if (feature.getFeatureId() != null) {
                         this.featureMap.put(feature.getFeatureId(), feature);
                     }
-                } catch (Exception e) {
-                    AppConfigException.logException(this.className, methodName, e);
                 }
             }
-
-            if (data.has(ConfigConstants.PROPERTIES)) {
+            // Load properties
+            if (config.getProperties() != null) {
                 this.propertyMap = new HashMap<>();
-                try {
-                    JSONArray array = (JSONArray) data.get(ConfigConstants.PROPERTIES);
-                    for (int i = 0; i < array.length(); i++) {
-                        JSONObject propertyJson = array.getJSONObject(i);
-                        Property property = new Property(propertyJson);
+                for (Property property : config.getProperties()) {
+                    if (property.getPropertyId() != null) {
                         this.propertyMap.put(property.getPropertyId(), property);
                     }
-                } catch (Exception e) {
-                    AppConfigException.logException(this.className, methodName, e);
                 }
             }
-
-            if (data.has(ConfigConstants.SEGMENTS)) {
+            // Load segments
+            if (config.getSegments() != null) {
                 this.segmentMap = new HashMap<>();
-                try {
-                    JSONArray array = (JSONArray) data.get(ConfigConstants.SEGMENTS);
-                    for (int i = 0; i < array.length(); i++) {
-                        JSONObject segmentJson = array.getJSONObject(i);
-                        Segment segment = new Segment(segmentJson);
+                for (Segment segment : config.getSegments()) {
+                    if (segment.getSegmentId() != null) {
                         this.segmentMap.put(segment.getSegmentId(), segment);
                     }
-                } catch (Exception e) {
-                    AppConfigException.logException(this.className, methodName, e);
                 }
             }
         }
     }
 
-
     /**
      * Records each of feature and property evaluations done by sending it to {@link Metering}.
      *
-     * @param featureId feature id
+     * @param featureId  feature id
      * @param propertyId property id
-     * @param entityId entity id
-     * @param segmentId segment id
+     * @param entityId   entity id
+     * @param segmentId  segment id
      */
     public void recordValuation(String featureId, String propertyId, String entityId, String segmentId) {
 
@@ -382,8 +359,8 @@ public class ConfigurationHandler {
     /**
      * Property evaluation.
      *
-     * @param property property object
-     * @param entityId entity id
+     * @param property         property object
+     * @param entityId         entity id
      * @param entityAttributes entity attributes JSON object
      * @return property evaluated value
      */
@@ -393,8 +370,8 @@ public class ConfigurationHandler {
         resultDict.put(ConfigConstants.VALUE, new Object());
 
         try {
-            JSONArray segmentRules = property.getSegmentRules();
-            if (segmentRules.length() > 0 && entityAttributes != null && !entityAttributes.isEmpty()) {
+            List<SegmentRules> segmentRules = property.getSegmentRules();
+            if (segmentRules != null && !segmentRules.isEmpty() && entityAttributes != null && !entityAttributes.isEmpty()) {
                 Map<Integer, SegmentRules> rulesMap = this.parseRules(segmentRules);
                 resultDict = evaluateRules(rulesMap, entityAttributes, null, property, null);
                 return resultDict.get(ConfigConstants.VALUE);
@@ -410,8 +387,8 @@ public class ConfigurationHandler {
     /**
      * Feature evaluation.
      *
-     * @param feature feature object
-     * @param entityId entity id
+     * @param feature          feature object
+     * @param entityId         entity id
      * @param entityAttributes entity attributes JSON object
      * @return feature evaluated value in map
      */
@@ -423,8 +400,8 @@ public class ConfigurationHandler {
         HashMap<String, Object> map = new HashMap<String, Object>();
         try {
             if (feature.isEnabled()) {
-                JSONArray segmentRules = feature.getSegmentRules();
-                if (segmentRules.length() > 0 && entityAttributes != null && !entityAttributes.isEmpty()) {
+                List<SegmentRules> segmentRules = feature.getSegmentRules();
+                if (segmentRules != null && !segmentRules.isEmpty() && entityAttributes != null && !entityAttributes.isEmpty()) {
                     Map<Integer, SegmentRules> rulesMap = this.parseRules(segmentRules);
                     resultDict = evaluateRules(rulesMap, entityAttributes, feature, null, entityId);
                     map.put(ConfigConstants.CURRENT_VALUE, resultDict.get(ConfigConstants.VALUE));
@@ -464,11 +441,11 @@ public class ConfigurationHandler {
                 SegmentRules segmentRule = rulesMap.get(i);
                 if (segmentRule != null) {
 
-                    for (int level = 0; level < segmentRule.getRules().length(); level++) {
-                        JSONObject rule = segmentRule.getRules().getJSONObject(level);
-                        JSONArray segments = rule.getJSONArray(ConfigConstants.SEGMENTS);
-                        for (int innerLevel = 0; innerLevel < segments.length(); innerLevel++) {
-                            String segmentKey = segments.getString(innerLevel);
+                    for (int level = 0; level < segmentRule.getRules().size(); level++) {
+                        RuleElem rule = segmentRule.getRules().get(level);
+                        List<String> segments = rule.getSegments();
+                        for (int innerLevel = 0; innerLevel < segments.size(); innerLevel++) {
+                            String segmentKey = segments.get(innerLevel);
                             if (this.evaluateSegment(segmentKey, entityAttributes)) {
                                 resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, segmentKey);
                                 if (feature != null) {
@@ -537,20 +514,19 @@ public class ConfigurationHandler {
 
     }
 
-    private Map<Integer, SegmentRules> parseRules(JSONArray segmentRulesList) {
+    private Map<Integer, SegmentRules> parseRules(List<SegmentRules> segmentRulesList) {
         Map<Integer, SegmentRules> ruleMap = new HashMap<>();
-        for (int i = 0; i < segmentRulesList.length(); i++) {
-            try {
-                JSONObject rule = segmentRulesList.getJSONObject(i);
-                SegmentRules segmentRules = new SegmentRules(rule);
-                ruleMap.put(segmentRules.getOrder(), segmentRules);
-            } catch (Exception e) {
-                AppConfigException.logException(this.className, "parseRules", e);
+        if (segmentRulesList != null) {
+            for (SegmentRules segmentRule : segmentRulesList) {
+                try {
+                    ruleMap.put(segmentRule.getOrder(), segmentRule);
+                } catch (Exception e) {
+                    AppConfigException.logException(this.className, "parseRules", e);
+                }
             }
         }
         return ruleMap;
     }
-
 
     private void fetchFromApi() {
         String methodName = "fetchFromApi";
@@ -562,13 +538,13 @@ public class ConfigurationHandler {
             5xx - Retry (Server errors)
 
             The imported package `com.ibm.cloud.sdk.core` is configured to retry the API request in case of failure.
-            Hence, we no need to write the retry logic again.
+            Hence, we don't need to write the retry logic again.
             The API call gets retried within getConfig() for 3 times in an exponential interval(1s, 2s, 4s) between each retry.
             If all the 3 retries fails, appropriate exceptions are raised.
             For 429 error code - The getConfig() will retry the request 3 times in an interval of time mentioned in ["retry-after"] header.
             If all the 3 retries exhausts the call is returned and appropriate exceptions are raised.
 
-            When all the above retries fails, we schedule our own Timer to retry after 10 minutes for the response status_codes [429 & 5xx].
+            When all the above retries fails, we schedule our own Timer to retry after 2 minutes for the response status_codes [429 & 5xx].
             All other status codes are not retried nor a retry is scheduled.
             User has to take immediate action and resolve it themselves by looking at the error logs.
          */
@@ -580,13 +556,13 @@ public class ConfigurationHandler {
             } catch (ServiceResponseException e) {
                 BaseLogger.error("Exception occurred while fetching configurations. Status code:" + e.getStatusCode() + " message: " + e.getMessage());
                 if (e.getStatusCode() == CoreConstants.TOO_MANY_REQUESTS || (e.getStatusCode() >= CoreConstants.SERVER_ERROR_BEGIN && e.getStatusCode() <= CoreConstants.SERVER_ERROR_END)) {
-                    BaseLogger.info(ConfigMessages.API_RETRY_SCHEDULED_MESSAGE);
+                    BaseLogger.info(String.format(ConfigMessages.API_RETRY_SCHEDULED_MESSAGE, this.configRetryInterval / 1000));
                     startConfigRetryTimer();
                 }
                 return;
             } catch (Exception e) {
                 AppConfigException.logException(this.className, methodName, e);
-                BaseLogger.info(ConfigMessages.API_RETRY_SCHEDULED_MESSAGE);
+                BaseLogger.info(String.format(ConfigMessages.API_RETRY_SCHEDULED_MESSAGE, this.configRetryInterval / 1000));
                 startConfigRetryTimer();
                 return;
             }
@@ -594,20 +570,19 @@ public class ConfigurationHandler {
             // API request was successful
             if (response.getStatusCode() == CoreConstants.REQUEST_SUCCESS_200) {
                 BaseLogger.debug(ConfigMessages.FETCH_API_SUCCESSFUL);
-                try {
-                    if (configRetry != null) {
-                        configRetry.cancel();
-                        configRetry = null;
+                if (configRetry != null) {
+                    configRetry.cancel();
+                    configRetry = null;
+                }
+                ResultExtractConfigurations serverConfigurations =
+                        Utils.extractConfigurations((String) response.getResult(), this.environmentId, this.collectionId);
+                if (serverConfigurations.isSuccess()) {
+                    loadConfigurationsInCache(serverConfigurations.getConfig());
+                    if (Validators.validateString(this.persistentCacheLocation)) {
+                        FileManager.writeFile(Utils.formatConfig(serverConfigurations.getConfig(), this.environmentId, this.collectionId), this.persistentCacheLocation);
                     }
-                    HashMap<String, Object> map = new ObjectMapper().readValue((String) response.getResult(),
-                            HashMap.class);
-                    JSONObject obj = new JSONObject(map);
-                    loadConfigurationsAndPopulateInMap(obj);
-                    if (this.persistentCacheLocation != null) {
-                        FileManager.createAndStoreFile(map, persistentCacheLocation);
-                    }
-                } catch (Exception e) {
-                    AppConfigException.logException(this.className, methodName, e);
+                } else {
+                    BaseLogger.error(ConfigMessages.ERROR_READ_FETCHED_CONFIGURATIONS + serverConfigurations.getErrorMessage());
                 }
             } else {
                 // rare or impossible case
@@ -636,7 +611,7 @@ public class ConfigurationHandler {
             public void retryMethod() {
                 fetchFromApi();
             }
-        }, -1);
+        }, this.configRetryInterval);
     }
 
     private synchronized void startSocketRetryTimer() {
@@ -655,7 +630,7 @@ public class ConfigurationHandler {
                 socketRetry.cancel();
                 socketRetry = null;
             }
-        }, 5000);
+        }, this.socketRetryInterval);
     }
 
     private SocketHandler getSocketHandler() {
@@ -684,14 +659,16 @@ public class ConfigurationHandler {
 
                 @Override
                 public void onClose(String closeMessage) {
-                    BaseLogger.debug("Received close connection from socket. " + closeMessage);
+                    BaseLogger.debug("Received close connection from socket. " + closeMessage
+                        + ". Reconnecting in " + socketRetryInterval / 1000 + " seconds.");
                     onSocketRetry = true;
                     startSocketRetryTimer();
                 }
 
                 @Override
                 public void onError(Exception e) {
-                    BaseLogger.error("Received error from socket. " + e.toString());
+                    BaseLogger.debug("Received error from socket. " + e.toString()
+                        + ". Reconnecting in " + socketRetryInterval / 1000 + " seconds.");
                     onSocketRetry = true;
                     startSocketRetryTimer();
                 }

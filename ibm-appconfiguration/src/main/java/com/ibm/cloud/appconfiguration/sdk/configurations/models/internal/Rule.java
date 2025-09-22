@@ -16,34 +16,52 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.models.internal;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
-import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Defines the model of a rule defined for a segment in App Configuration service.
  */
 public class Rule {
 
-    public String attributeName;
-    public String operator;
-    public JSONArray values;
+    @JsonProperty("attribute_name")
+    private String attributeName;
+
+    @JsonProperty("operator")
+    private String operator;
+
+    @JsonProperty("values")
+    private List<Object> values;
+
     private final String className = this.getClass().getName();
 
-    /**
-     * @param ruleJson JSON object containing rule information
-     */
-    public Rule(JSONObject ruleJson) {
+    // Constructor for Jackson with required field validation
+    @JsonCreator
+    public Rule(
+        @JsonProperty(value = "attribute_name", required = true) String attributeName,
+        @JsonProperty(value = "operator", required = true) String operator,
+        @JsonProperty(value = "values", required = true) List<Object> values
+    ) {
+        this.attributeName = attributeName;
+        this.operator = operator;
+        this.values = values;
+    }
 
-        try {
-            this.attributeName = ruleJson.getString("attribute_name");
-            this.operator = ruleJson.getString("operator");
-            this.values = ruleJson.getJSONArray("values");
-        } catch (Exception e) {
-            AppConfigException.logException(this.className, "Constructor", e, new Object[]{"Invalid action in Rule class."});
-        }
+    public String getAttributeName() {
+        return attributeName;
+    }
+
+    public String getOperator() {
+        return operator;
+    }
+
+    public List<Object> getValues() {
+        return values;
     }
 
     /**
@@ -73,7 +91,7 @@ public class Rule {
         if (Arrays.asList("isNot", "notContains", "notStartsWith", "notEndsWith").contains(this.operator)) {
             // If negative operator, check whether all the values satisfies condition
             result = true;
-            for (int i = 0; i < this.values.length(); i++) {
+            for (int i = 0; i < this.values.size(); i++) {
                 try {
                     Object value = this.values.get(i);
                     if (!operatorCheck(key, value)) {
@@ -87,7 +105,7 @@ public class Rule {
             }
         } else {
             // If positive operator, check whether any one of the value satisfies condition
-            for (int i = 0; i < this.values.length(); i++) {
+            for (int i = 0; i < this.values.size(); i++) {
                 try {
                     Object value = this.values.get(i);
                     if (operatorCheck(key, value)) {

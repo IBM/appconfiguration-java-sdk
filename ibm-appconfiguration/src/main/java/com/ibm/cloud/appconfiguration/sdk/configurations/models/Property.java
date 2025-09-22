@@ -16,87 +16,104 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.models;
 
+import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
-import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
-import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.SegmentRules;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
-import org.json.JSONArray;
 import org.json.JSONObject;
+
+import java.util.List;
 
 /**
  * Property class.
  */
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class Property {
 
+    @JsonProperty("name")
     private String name;
+
+    @JsonProperty("property_id")
     private String propertyId;
-    private JSONArray segmentRules;
+
+    @JsonProperty("type")
     private ConfigurationType type;
+
+    @JsonProperty("format")
     private String format;
+
+    @JsonProperty("value")
     private Object value;
 
-    /**
-     * @param propertyData properties JSON object that contains all the properties
-     */
-    public Property(JSONObject propertyData) {
+    @JsonProperty("segment_rules")
+    private List<SegmentRules> segmentRules;
 
-        try {
-            this.name = propertyData.getString(ConfigConstants.NAME);
-            this.propertyId = propertyData.getString(ConfigConstants.PROPERTY_ID);
-            this.segmentRules = propertyData.getJSONArray(ConfigConstants.SEGMENT_RULES);
-            this.type = ConfigurationType.valueOf(propertyData.getString(ConfigConstants.TYPE));
-            this.format = propertyData.optString(ConfigConstants.FORMAT, null);
-            this.value = propertyData.get(ConfigConstants.VALUE);
-        } catch (Exception e) {
-            AppConfigException.logException("Property", "Constructor", e,
-                    new Object[]{"Invalid action in Property class."});
-        }
+    @JsonProperty("collections")
+    private List<Collection> collections;
+
+    // Constructor for Jackson with required field validation
+    @JsonCreator
+    public Property(
+        @JsonProperty(value = "name", required = true) String name,
+        @JsonProperty(value = "property_id", required = true) String propertyId,
+        @JsonProperty(value = "type", required = true) ConfigurationType type,
+        @JsonProperty(value = "value", required = true) Object value,
+        @JsonProperty(value = "segment_rules", required = true) List<SegmentRules> segmentRules
+    ) {
+        this.name = name;
+        this.propertyId = propertyId;
+        this.type = type;
+        this.value = value;
+        this.segmentRules = segmentRules;
     }
 
+    // optional field, set it post-creation
+    @JsonProperty("format")
+    public void setFormat(String format) {
+        this.format = format;
+    }
+
+    // optional field, set it post-creation
+    @JsonProperty("collections")
+    public void setCollections(List<Collection> collections) {
+        this.collections = collections;
+    }
+
+    public String getName() {
+        return name;
+    }
 
     /**
-     * Get the Property name.
-     *
-     * @return property name
+     * Kept for backward compatibility. Same as "getName()".
      */
+    @JsonIgnore
     public String getPropertyName() {
-        return this.name;
+        return this.getName();
     }
 
-    /**
-     * Get the Property Id.
-     *
-     * @return property id
-     */
     public String getPropertyId() {
-        return this.propertyId;
+        return propertyId;
     }
 
-    /**
-     * Get the default property value.
-     *
-     * @return default property value
-     */
-    public Object getValue() {
-        return value;
-    }
-
-    /**
-     *  Get the Property data type.
-     *
-     * @return string named BOOLEAN/STRING/NUMERIC
-     */
-    public ConfigurationType getPropertyDataType() {
+    public ConfigurationType getType() {
         return type;
     }
 
     /**
-     *  Get the Property format type.
+     *  Kept for backward compatibility. Same as "getType()".
      *
-     * @return string named TEXT/JSON/YAML/null
+     * @return string named BOOLEAN/STRING/NUMERIC
      */
-    public String getPropertyDataFormat() {
+    @JsonIgnore
+    public ConfigurationType getPropertyDataType() {
+        return this.getType();
+    }
+
+    public String getFormat() {
         if (this.type.equals(ConfigurationType.STRING) && this.format == null) {
             return "TEXT";
         }
@@ -104,12 +121,25 @@ public class Property {
     }
 
     /**
-     * Get the rules of the Segment targeted.
+     * Kept for backward compatibility. Same as "getFormat()".
      *
-     * @return segment rules
+     * @return string named TEXT/JSON/YAML/null
      */
-    public JSONArray getSegmentRules() {
+    @JsonIgnore
+    public String getPropertyDataFormat() {
+        return this.getFormat();
+    }
+
+    public Object getValue() {
+        return value;
+    }
+
+    public List<SegmentRules> getSegmentRules() {
         return segmentRules;
+    }
+
+    public List<Collection> getCollections() {
+        return collections;
     }
 
     /**
@@ -127,7 +157,6 @@ public class Property {
      * @return {boolean|string|number|null} Returns the default property value or its overridden value based on the evaluation.
      */
     public Object getCurrentValue(String entityId, JSONObject entityAttributes) {
-
         if (!Validators.validateString(entityId)) {
             BaseLogger.error("A valid id should be passed for this method.");
             return null;

@@ -21,40 +21,33 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
+
+import java.util.Collections;
+import java.util.List;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class RuleTest {
 
     Rule sut;
 
-    public void setUp(Object value, String operator, String attribute) {
-        JSONObject rules = new JSONObject();
-        JSONArray values = new JSONArray();
-        values.put(value);
-        try {
-            rules.put("values",values);
-            rules.put("operator",operator);
-            rules.put("attribute_name",attribute);
-
-        } catch (Exception e) {
-            System.out.println(e);
-        }
-        this.sut = new Rule(rules);
+    public void setUp(List<Object> value, String operator, String attribute) {
+        this.sut = new Rule(attribute, operator, value);
     }
 
     @Test
     public void testRules() throws JSONException {
-        setUp("in.ibm.com", "endsWith", "email");
-        assertEquals(sut.attributeName, "email");
-        assertEquals(sut.operator, "endsWith");
-        assertEquals(sut.values.length(), 1);
-        assertEquals(sut.values.getString(0), "in.ibm.com");
+        setUp(Collections.singletonList("in.ibm.com"), "endsWith", "email");
+        assertEquals(sut.getAttributeName(), "email");
+        assertEquals(sut.getOperator(), "endsWith");
+        assertEquals(sut.getValues().size(), 1);
+        assertEquals(sut.getValues().get(0), "in.ibm.com");
         assertFalse(sut.evaluateRule(new JSONObject()));
     }
 
     @Test
     public void testEvaluationEndsWithString() {
-        setUp("in.ibm.com", "endsWith", "email");
+        setUp(Collections.singletonList("in.ibm.com"), "endsWith", "email");
         JSONObject clientAttributes = new JSONObject();
         try {
             clientAttributes.put("email","tester@in.ibm.com");
@@ -76,84 +69,84 @@ public class RuleTest {
         try {
 
             clientAttributes.put("creditValues","123");
-            setUp("123", "is", "creditValues");
+            setUp(Collections.singletonList("123"), "is", "creditValues");
             assertTrue(sut.evaluateRule(clientAttributes));
             clientAttributes.put("creditValues","false");
-            setUp("false", "is", "creditValues");
+            setUp(Collections.singletonList("false"), "is", "creditValues");
             assertTrue(sut.evaluateRule(clientAttributes));
 
             clientAttributes.put("creditValues",123);
-            setUp(123, "is", "creditValues");
+            setUp(Collections.singletonList(123), "is", "creditValues");
             assertTrue(sut.evaluateRule(clientAttributes));
 
             clientAttributes.put("creditValues",false);
-            setUp("123", "is", "creditValues");
+            setUp(Collections.singletonList("123"), "is", "creditValues");
 
             assertFalse(sut.evaluateRule(clientAttributes));
-            setUp(123, "is", "creditValues");
+            setUp(Collections.singletonList(123), "is", "creditValues");
             assertFalse(sut.evaluateRule(clientAttributes));
 
             clientAttributes.put("creditValues",false);
-            setUp("false", "is", "creditValues");
+            setUp(Collections.singletonList("false"), "is", "creditValues");
             assertTrue(sut.evaluateRule(clientAttributes));
 
-            setUp(false, "is", "creditValues");
-            assertTrue(sut.evaluateRule(clientAttributes));
-
-
-            clientAttributes.put("email","tester@in.ibm.com");
-            setUp("tester", "startsWith", "email");
-            assertTrue(sut.evaluateRule(clientAttributes));
-
-            clientAttributes.put("email","tester@in.ibm.com");
-            setUp("bob", "notStartsWith", "email");
-            assertTrue(sut.evaluateRule(clientAttributes));
-            setUp("@google.com", "notEndsWith", "email");
-            assertTrue(sut.evaluateRule(clientAttributes));
-            setUp("#", "notContains", "email");
-            assertTrue(sut.evaluateRule(clientAttributes));
-            setUp("bob@ibm.com", "isNot", "email");
+            setUp(Collections.singletonList(false), "is", "creditValues");
             assertTrue(sut.evaluateRule(clientAttributes));
 
 
             clientAttributes.put("email","tester@in.ibm.com");
-            setUp("ibm", "contains", "email");
+            setUp(Collections.singletonList("tester"), "startsWith", "email");
+            assertTrue(sut.evaluateRule(clientAttributes));
+
+            clientAttributes.put("email","tester@in.ibm.com");
+            setUp(Collections.singletonList("bob"), "notStartsWith", "email");
+            assertTrue(sut.evaluateRule(clientAttributes));
+            setUp(Collections.singletonList("@google.com"), "notEndsWith", "email");
+            assertTrue(sut.evaluateRule(clientAttributes));
+            setUp(Collections.singletonList("#"), "notContains", "email");
+            assertTrue(sut.evaluateRule(clientAttributes));
+            setUp(Collections.singletonList("bob@ibm.com"), "isNot", "email");
+            assertTrue(sut.evaluateRule(clientAttributes));
+
+
+            clientAttributes.put("email","tester@in.ibm.com");
+            setUp(Collections.singletonList("ibm"), "contains", "email");
             assertTrue(sut.evaluateRule(clientAttributes));
 
             clientAttributes.put("creditValues",100);
-            setUp(200, "greaterThan", "creditValues");
+            setUp(Collections.singletonList(200), "greaterThan", "creditValues");
             assertFalse(sut.evaluateRule(clientAttributes));
 
             clientAttributes.put("creditValues",200);
-            setUp(100, "greaterThan", "creditValues");
+            setUp(Collections.singletonList(100), "greaterThan", "creditValues");
             assertTrue(sut.evaluateRule(clientAttributes));
 
             clientAttributes.put("creditValues",100);
-            setUp(200, "lesserThan", "creditValues");
+            setUp(Collections.singletonList(200), "lesserThan", "creditValues");
             assertTrue(sut.evaluateRule(clientAttributes));
 
             clientAttributes.put("creditValues",200);
-            setUp(100, "lesserThan", "creditValues");
+            setUp(Collections.singletonList(100), "lesserThan", "creditValues");
             assertFalse(sut.evaluateRule(clientAttributes));
 
             clientAttributes.put("creditValues",100);
-            setUp(100, "greaterThanEquals", "creditValues");
+            setUp(Collections.singletonList(100), "greaterThanEquals", "creditValues");
             assertTrue(sut.evaluateRule(clientAttributes));
 
             clientAttributes.put("creditValues",20);
-            setUp(200, "greaterThanEquals", "creditValues");
+            setUp(Collections.singletonList(200), "greaterThanEquals", "creditValues");
             assertFalse(sut.evaluateRule(clientAttributes));
 
             clientAttributes.put("creditValues",100);
-            setUp(100, "lesserThanEquals", "creditValues");
+            setUp(Collections.singletonList(100), "lesserThanEquals", "creditValues");
             assertTrue(sut.evaluateRule(clientAttributes));
 
             clientAttributes.put("creditValues",200);
-            setUp(20, "lesserThanEquals", "creditValues");
+            setUp(Collections.singletonList(20), "lesserThanEquals", "creditValues");
             assertFalse(sut.evaluateRule(clientAttributes));
 
             clientAttributes.put("creditValues","200");
-            setUp("20", "lesserThanEquals", "creditValues");
+            setUp(Collections.singletonList("20"), "lesserThanEquals", "creditValues");
             assertFalse(sut.evaluateRule(clientAttributes));
 
         } catch (Exception e) {
@@ -164,10 +157,10 @@ public class RuleTest {
 
     @Test
     public void testRulesException() {
-        this.sut = new Rule(new JSONObject());
-        assertNull(this.sut.attributeName);
-        assertNull(this.sut.operator);
-        assertNull(this.sut.values);
+        this.sut = new Rule(null, null, null);
+        assertNull(this.sut.getAttributeName());
+        assertNull(this.sut.getOperator());
+        assertNull(this.sut.getValues());
     }
 
 
