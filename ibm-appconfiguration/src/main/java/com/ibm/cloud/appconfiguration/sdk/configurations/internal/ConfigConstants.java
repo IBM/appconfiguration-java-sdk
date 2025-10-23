@@ -42,6 +42,7 @@ public class ConfigConstants {
     public static final String PERSISTENCE_CACHE_FILE = "appconfiguration.json";
     public static final String FEATURE_ENABLED = "feature_enabled";
     public static final int DEFAULT_ROLLOUT_PERCENTAGE = 100;
+    public static final int LOWEST_POSSIBLE_ROLLOUT_PERCENTAGE = 0;
     public static final int SEED = 0;
     public static final int OFFSET = 0;
     public static final double MAX_VAL = Math.pow(2, 32);

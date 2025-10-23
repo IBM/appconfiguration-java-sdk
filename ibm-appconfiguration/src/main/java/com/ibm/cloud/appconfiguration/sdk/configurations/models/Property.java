@@ -88,6 +88,7 @@ public class Property {
     }
 
     /**
+     * @return String property name
      * Kept for backward compatibility. Same as "getName()".
      */
     @JsonIgnore

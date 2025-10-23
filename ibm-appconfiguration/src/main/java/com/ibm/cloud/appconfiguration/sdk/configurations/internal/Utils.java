@@ -51,9 +51,10 @@ public class Utils {
      * @param jsonData      string JSON input
      * @param environmentId selected environment ID
      * @param collectionId  required collection ID
+     * @return ResultExtractConfigurations results after extracting configurations from json input
      *
      * 1. Parse the jsonData into Config class
-     * 2. Extract all the Features, Properties & Segments that are under environmentId and assigned to collectionId
+     * 2. Extract all the Features, Properties and Segments that are under environmentId and assigned to collectionId
      * 3. If collections array is not present - feature/property is still considered as part of the config.
      * 4. And creates a new CacheConfig from the extracted data
      */
@@ -180,6 +181,10 @@ public class Utils {
 
 
     /**
+     * @param data Cached resources
+     * @param environmentId environment ID
+     * @param collectionId collection ID
+     * @return String reformated json string representaion of resources
      * will reformat the configurations from CacheConfig to Config.
      */
     public static String formatConfig(CacheConfig data, String environmentId, String collectionId) {
