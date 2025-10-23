@@ -109,6 +109,7 @@ public class Feature {
     }
 
     /**
+     * @return String feature flag name
      * Kept for backward compatibility. Same as "getName()".
      */
     @JsonIgnore
@@ -168,6 +169,7 @@ public class Feature {
     }
 
     /**
+     * @return Boolean enabled status of flag
      * Kept for backward compatibility. Same as "getEnabled()".
      */
     @JsonIgnore

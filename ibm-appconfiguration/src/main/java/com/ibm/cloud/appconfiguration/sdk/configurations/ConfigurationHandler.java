@@ -408,12 +408,15 @@ public class ConfigurationHandler {
                     map.put(ConfigConstants.IS_ENABLED, resultDict.get(ConfigConstants.FEATURE_ENABLED));
                     return map;
                 }
-                int hashResult = calculateMurmurHash(entityId, feature.getFeatureId());
-                if (feature.getRolloutPercentage() == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE || hashResult < feature.getRolloutPercentage()) {
+                // Murmurhash will be calculated if rollout_percentage is not 100 or 0
+                if (feature.getRolloutPercentage() == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE
+                        || (feature.getRolloutPercentage() != ConfigConstants.LOWEST_POSSIBLE_ROLLOUT_PERCENTAGE
+                        && calculateMurmurHash(entityId, feature.getFeatureId()) < feature.getRolloutPercentage())) {
                     map.put(ConfigConstants.CURRENT_VALUE, feature.getEnabledValue());
                     map.put(ConfigConstants.IS_ENABLED, true);
                     return map;
                 }
+
                 map.put(ConfigConstants.CURRENT_VALUE, feature.getDisabledValue());
                 map.put(ConfigConstants.IS_ENABLED, false);
                 return map;
@@ -450,8 +453,9 @@ public class ConfigurationHandler {
                                 resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, segmentKey);
                                 if (feature != null) {
                                     int rolloutPercentage = getRolloutPercentage(segmentRule.getRolloutPercentage(), feature.getRolloutPercentage());
-                                    int hashResult = calculateMurmurHash(entityId, feature.getFeatureId());
-                                    if (rolloutPercentage == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE || hashResult < rolloutPercentage) {
+                                    if (rolloutPercentage == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE
+                                            || (rolloutPercentage != ConfigConstants.LOWEST_POSSIBLE_ROLLOUT_PERCENTAGE
+                                            && calculateMurmurHash(entityId, feature.getFeatureId()) < rolloutPercentage)) {
                                         if (segmentRule.getValue().equals("$default")) {
                                             resultDict.put(ConfigConstants.VALUE, feature.getEnabledValue());
                                         } else {
@@ -482,8 +486,9 @@ public class ConfigurationHandler {
             AppConfigException.logException(this.className, "RuleEvaluation", e);
         }
         if (feature != null) {
-            int hashResult = calculateMurmurHash(entityId, feature.getFeatureId());
-            if (feature.getRolloutPercentage() == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE || hashResult < feature.getRolloutPercentage()) {
+            if (feature.getRolloutPercentage() == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE
+                    || (feature.getRolloutPercentage() != ConfigConstants.LOWEST_POSSIBLE_ROLLOUT_PERCENTAGE
+                    && calculateMurmurHash(entityId, feature.getFeatureId()) < feature.getRolloutPercentage())) {
                 resultDict.put(ConfigConstants.VALUE, feature.getEnabledValue());
                 resultDict.put(ConfigConstants.FEATURE_ENABLED, true);
             } else {
