@@ -17,5 +17,5 @@
 package com.ibm.cloud.appconfiguration.sdk.configurations.models;
 
 public enum ConfigurationType {
-    NUMERIC, STRING, BOOLEAN;
+    NUMERIC, STRING, BOOLEAN, SECRETREF;
 }
