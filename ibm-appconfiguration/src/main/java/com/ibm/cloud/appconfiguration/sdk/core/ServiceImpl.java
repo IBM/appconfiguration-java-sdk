@@ -16,8 +16,6 @@
 
 package com.ibm.cloud.appconfiguration.sdk.core;
 
-import com.google.gson.Gson;
-import com.google.gson.JsonObject;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.URLBuilder;
 import com.ibm.cloud.sdk.core.http.HttpHeaders;
@@ -29,7 +27,6 @@ import com.ibm.cloud.sdk.core.security.Authenticator;
 import com.ibm.cloud.sdk.core.security.IamAuthenticator;
 import com.ibm.cloud.sdk.core.service.BaseService;
 import com.ibm.cloud.sdk.core.util.ResponseConverterUtils;
-import org.json.JSONObject;
 
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
@@ -160,17 +157,16 @@ public class ServiceImpl extends BaseService {
     /**
      * Execute POST API request.
      *
-     * @param meteringUrl url to send metering data
+     * @param url url to send metering data
      * @param data data to send
      * @return the HTTP response
      */
-    public Response postMetering(String meteringUrl, JSONObject data) {
-        RequestBuilder builder = RequestBuilder.post(RequestBuilder.resolveRequestUrl(meteringUrl, null, null));
+    public Response<String> post(String url, String data) {
+        RequestBuilder builder = RequestBuilder.post(RequestBuilder.resolveRequestUrl(url, null, null));
         for (Map.Entry<String, String> header : this.getServiceHeaders().entrySet()) {
             builder.header(header.getKey(), header.getValue());
         }
-        JsonObject jsonData = new Gson().fromJson(String.valueOf(data), JsonObject.class);
-        builder.bodyJson(jsonData);
+        builder.bodyContent(data, ConfigConstants.JSON_CONTENT);
         ResponseConverter<String> responseConverter = ResponseConverterUtils.getString();
         return createServiceCall(builder.build(), responseConverter).execute();
     }

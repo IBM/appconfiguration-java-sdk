@@ -16,6 +16,8 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.internal;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.Evaluation;
 import com.ibm.cloud.appconfiguration.sdk.core.AppConfigException;
 import com.ibm.cloud.appconfiguration.sdk.core.ServiceImpl;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
@@ -23,10 +25,7 @@ import com.ibm.cloud.appconfiguration.sdk.core.CoreConstants;
 
 import com.ibm.cloud.sdk.core.http.Response;
 import com.ibm.cloud.sdk.core.service.exception.ServiceResponseException;
-import org.json.JSONArray;
-import org.json.JSONObject;
 
-import java.util.HashMap;
 import java.util.Timer;
 import java.util.TimerTask;
 import java.util.concurrent.ConcurrentHashMap;
@@ -38,16 +37,18 @@ import java.util.concurrent.atomic.AtomicReference;
  * to App Configuration server in intervals.
  */
 public class Metering {
-    private static final String DELIMITER = "\u001F";
-    private static Metering instance;
-    private final int sendInterval = 600000;
-    private String meteringUrl = null;
-    private String apikey = null;
 
+    private static Metering instance;
+
+    private String meteringUrl;
+    private String environmentId;
+    private String collectionId;
+    private String apikey;
 
     private ConcurrentHashMap<String, MeteringRecord> meteringFeatureData = new ConcurrentHashMap<>();
     private ConcurrentHashMap<String, MeteringRecord> meteringPropertyData = new ConcurrentHashMap<>();
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     /**
      * @return instance of {@link Metering}
@@ -60,102 +61,67 @@ public class Metering {
     }
 
     private Metering() {
-        new RetryHandler(new RetryInterface() {
-            @Override
-            public void retryMethod() {
-                sendMetering();
-            }
-        }, sendInterval);
+        new RetryHandler(this::sendMetering, ConfigConstants.USAGE_SEND_INTERVAL);
     }
 
     /**
-     * Sets the URL to which metering metrics is to be sent.
+     * Initializes metering configuration.
      *
-     * @param url    url
-     * @param apikey apikey of App Configuration service instance
+     * @param url           metering endpoint URL
+     * @param collectionId collection identifier
+     * @param environmentId environment identifier
+     * @param apikey        service API key
      */
-    public void setMeteringUrl(String url, String apikey) {
+    public void init(String url, String collectionId, String environmentId, String apikey) {
         this.meteringUrl = url;
+        this.collectionId = collectionId;
+        this.environmentId = environmentId;
         this.apikey = apikey;
     }
 
     /**
-     * Stores the feature and property evaluation metrics into hashmaps.
+     * Records a feature or property evaluation.
      *
-     * @param guid          guid of App Configuration service instance
-     * @param environmentId environment id of App Configuration service instance
-     * @param collectionId  collection id
-     * @param entityId      entity id
-     * @param segmentId     segment id
-     * @param featureId     feature id
-     * @param propertyId    property id
+     * @param entityId   entity identifier
+     * @param segmentId  segment identifier (nullable)
+     * @param featureId  feature identifier (nullable)
+     * @param propertyId property identifier (nullable)
      */
-    public void addMetering(String guid, String environmentId, String collectionId, String entityId,
-                            String segmentId, String featureId, String propertyId) {
-
-        String key = buildCompositeKey(guid, environmentId, collectionId,
-                featureId != null ? featureId : propertyId,
-                entityId, segmentId);
-
-        ConcurrentHashMap<String, MeteringRecord> dataMap =
-                featureId != null ? meteringFeatureData : meteringPropertyData;
-
-        dataMap.compute(key, (k, record) -> {
-            String evaluationTime = ServiceImpl.getCurrentDateTime(); // Time captured atomically
-
+    public void addMetering(String entityId, String segmentId, String featureId, String propertyId) {
+        boolean isFeature = featureId != null;
+        String modifyKey = isFeature ? featureId : propertyId;
+        String key = buildCompositeKey(modifyKey, entityId, segmentId);
+        (isFeature ? meteringFeatureData : meteringPropertyData).compute(key, (k, record) -> {
+            String evaluationTime = ServiceImpl.getCurrentDateTime();
             if (record == null) {
-                return new Metering.MeteringRecord(evaluationTime);
+                return new MeteringRecord(evaluationTime);
             }
             record.increment(evaluationTime);
             return record;
         });
     }
 
-    private void buildRequestBody(ConcurrentHashMap<String, MeteringRecord> sendMeteringData,
-                                  HashMap<String, JSONArray> result, String key) {
-
-        sendMeteringData.forEach((compositeKey, meteringRecord) -> {
-            String[] keyParts = parseCompositeKey(compositeKey);
-            if (keyParts.length != 6) return;
-
-            String guid = keyParts[0];
-            String environmentId = keyParts[1];
-            String collectionId = keyParts[2];
-            String featureOrPropertyId = keyParts[3];
-            String entityId = keyParts[4];
-            String segmentId = keyParts[5];
-
-            // Get or create the GUID entry in result
-            if (!result.containsKey(guid)) {
-                result.put(guid, new JSONArray());
-            }
-
-            JSONArray guidArray = result.get(guid);
-
-            // Find or create the collection for this environment+collection
-            JSONObject collection = findOrCreateCollection(guidArray, environmentId, collectionId);
-            JSONArray usages = collection.getJSONArray(ConfigConstants.USAGES);
-
-            // Create usage object - SAME FORMAT AS BEFORE
-            JSONObject usage = new JSONObject();
-            usage.put(key, featureOrPropertyId);
-            usage.put(ConfigConstants.ENTITY_ID,
-                    entityId.equals(ConfigConstants.DEFAULT_ENTITY_ID) ? JSONObject.NULL : entityId);
-            usage.put(ConfigConstants.SEGMENT_ID,
-                    segmentId.equals(ConfigConstants.DEFAULT_SEGMENT_ID) ? JSONObject.NULL : segmentId);
-            usage.put(ConfigConstants.EVALUATION_TIME, meteringRecord.getLatestTime());
-            usage.put(ConfigConstants.COUNT, meteringRecord.getCount());
-
-            usages.put(usage);
+    /**
+     * Populates the evaluation payload from metering records.
+     *
+     * @param data         metering data map
+     * @param result       evaluation payload
+     * @param resourceType feature or property identifier key
+     */
+    private static void buildRequestBody(ConcurrentHashMap<String, MeteringRecord> data, Evaluation result,
+        String resourceType) {
+        data.forEach((compositeKey, record) -> {
+            String[] parts = parseCompositeKey(compositeKey);
+            result.addUsage(resourceType, parts[0], parts[1], parts[2], record.getLatestTime(), record.getCount());
         });
     }
 
     /**
      * Sends the evaluation metrics data to App Configuration billing server.
      *
-     * @return JSON data constructed out of hashmaps
+     * @return evaluation payload constructed from accumulated data
      */
-    public synchronized HashMap sendMetering() {
+    public synchronized Evaluation sendMetering() {
         // Atomic swap of data maps
         ConcurrentHashMap<String, MeteringRecord> currentFeatureData = this.meteringFeatureData;
         ConcurrentHashMap<String, MeteringRecord> currentPropertyData = this.meteringPropertyData;
@@ -164,109 +130,120 @@ public class Metering {
         this.meteringFeatureData = new ConcurrentHashMap<>();
         this.meteringPropertyData = new ConcurrentHashMap<>();
 
+        Evaluation result = new Evaluation();
+        result.collectionId = collectionId;
+        result.environmentId = environmentId;
         if (currentFeatureData.isEmpty() && currentPropertyData.isEmpty()) {
-            return new HashMap();
+            return result;
         }
-
-        HashMap<String, JSONArray> result = new HashMap();
-
         if (!currentFeatureData.isEmpty()) {
-            this.buildRequestBody(currentFeatureData, result, ConfigConstants.FEATURE_ID);
+            buildRequestBody(currentFeatureData, result, ConfigConstants.FEATURE_ID);
         }
-
         if (!currentPropertyData.isEmpty()) {
-            this.buildRequestBody(currentPropertyData, result, ConfigConstants.PROPERTY_ID);
+            buildRequestBody(currentPropertyData, result, ConfigConstants.PROPERTY_ID);
         }
-
-        result.forEach((guid, dataArray) -> {
-            dataArray.forEach((json) -> {
-                int count = ((JSONObject) json).getJSONArray(ConfigConstants.USAGES).length();
-                if (count > 25) {
-                    this.sendSplitMetering((JSONObject) json, count);
-                } else {
-                    this.sendToServer((JSONObject) json);
-                }
-            });
-        });
+        sendSplitMetering(result);
         return result;
     }
 
-    public void sendSplitMetering(JSONObject data, int count) {
-        int lim = 0;
-
-        JSONArray subUsagesArray = data.getJSONArray(ConfigConstants.USAGES);
-
-        while (lim < count) {
-            int endIndex = Math.min(lim + ConfigConstants.DEFAULT_USAGE_LIMIT, count);
-            JSONObject collectionsMap = new JSONObject();
-            collectionsMap.put(ConfigConstants.COLLECTION_ID, data.getString(ConfigConstants.COLLECTION_ID));
-            collectionsMap.put(ConfigConstants.ENVIRONMENT_ID, data.getString(ConfigConstants.ENVIRONMENT_ID));
-            JSONArray usagesArray = new JSONArray();
-            for (int i = lim; i < endIndex; i++) {
-                usagesArray.put(subUsagesArray.get(i));
-            }
-            collectionsMap.put(ConfigConstants.USAGES, usagesArray);
-            this.sendToServer(collectionsMap);
-            lim += ConfigConstants.DEFAULT_USAGE_LIMIT;
+    /**
+     * Sends evaluation data in batches based on configured usage limits.
+     *
+     * @param data evaluation payload
+     */
+    public void sendSplitMetering(Evaluation data) {
+        int start = 0;
+        int total = data.usages.size();
+        while (start < total) {
+            Evaluation batch = data.generateUsageLimitedCopy(start, ConfigConstants.DEFAULT_USAGE_LIMIT);
+            sendToServer(batch);
+            start += ConfigConstants.DEFAULT_USAGE_LIMIT;
         }
     }
 
-    private void sendToServer(JSONObject data) {
-        Response response;
+    /**
+     * Sends a single evaluation payload to the billing server.
+     *
+     * @param data evaluation payload
+     */
+    private void sendToServer(Evaluation data) {
         try {
-            response = ServiceImpl.getInstance(this.apikey).postMetering(this.meteringUrl, data);
+            String payload = MAPPER.writeValueAsString(data);
+            Response<String> response = ServiceImpl.getInstance(apikey).post(meteringUrl, payload);
             if (response.getStatusCode() == CoreConstants.REQUEST_SUCCESS_202) {
-                BaseLogger.debug("Successfully pushed the metering data.");
+                BaseLogger.debug("Successfully pushed metering data.");
             }
         } catch (ServiceResponseException e) {
-            BaseLogger.error("Exception occurred while sending metering data to server. Status code:" + e.getStatusCode() + " message: " + e.getMessage());
-            if (e.getStatusCode() == CoreConstants.TOO_MANY_REQUESTS || (e.getStatusCode() >= CoreConstants.SERVER_ERROR_BEGIN && e.getStatusCode() <= CoreConstants.SERVER_ERROR_END)) {
-                Timer timer = new Timer(true);
-                timer.schedule(new TimerTask() {
-                    @Override
-                    public void run() {
-                        sendToServer(data);
-                        timer.cancel();
-                    }
-                }, sendInterval);
-            }
+            handleRetry(data, e);
         } catch (Exception e) {
-            AppConfigException.logException(this.getClass().getName(), "sendToServer", e);
-            Timer timer = new Timer(true);
-            timer.schedule(new TimerTask() {
-                @Override
-                public void run() {
-                    sendToServer(data);
-                    timer.cancel();
-                }
-            }, sendInterval);
+            AppConfigException.logException(getClass().getName(), "sendToServer", e);
+            scheduleRetry(data);
         }
     }
 
-    private JSONObject findOrCreateCollection(JSONArray guidArray, String environmentId, String collectionId) {
-        // Look for existing collection with same environment and collection ID
-        for (int i = 0; i < guidArray.length(); i++) {
-            JSONObject collection = guidArray.getJSONObject(i);
-            if (collection.getString(ConfigConstants.ENVIRONMENT_ID).equals(environmentId)
-                    && collection.getString(ConfigConstants.COLLECTION_ID).equals(collectionId)) {
-                return collection;
+    /**
+     * Handles retryable server-side failures.
+     *
+     * @param data evaluation payload
+     * @param e    service exception
+     */
+    private void handleRetry(Evaluation data, ServiceResponseException e) {
+        BaseLogger.error("Failed to send metering data. Status code: "
+                + e.getStatusCode() + ", message: " + e.getMessage());
+
+        if (e.getStatusCode() == CoreConstants.TOO_MANY_REQUESTS
+            || (e.getStatusCode() >= CoreConstants.SERVER_ERROR_BEGIN
+            && e.getStatusCode() <= CoreConstants.SERVER_ERROR_END)) {
+            scheduleRetry(data);
+        }
+    }
+
+    /**
+     * Schedules a retry attempt after the configured interval.
+     *
+     * @param data evaluation payload
+     */
+    private void scheduleRetry(Evaluation data) {
+        Timer timer = new Timer(true);
+        timer.schedule(new TimerTask() {
+            @Override
+            public void run() {
+                sendToServer(data);
+                timer.cancel();
             }
-        }
-
-        // Create new collection if not found
-        JSONObject newCollection = new JSONObject();
-        newCollection.put(ConfigConstants.COLLECTION_ID, collectionId);
-        newCollection.put(ConfigConstants.ENVIRONMENT_ID, environmentId);
-        newCollection.put(ConfigConstants.USAGES, new JSONArray());
-        guidArray.put(newCollection);
-
-        return newCollection;
+        }, ConfigConstants.USAGE_SEND_INTERVAL);
     }
+
+    /**
+     * Builds a composite key for metering aggregation.
+     *
+     * @param modifyKey feature or property identifier
+     * @param entityId  entity identifier
+     * @param segmentId segment identifier (nullable)
+     * @return composite key string
+     */
+    private static String buildCompositeKey(String modifyKey, String entityId, String segmentId) {
+        return String.join(ConfigConstants.DELIMITER, modifyKey, entityId, segmentId == null ? "" : segmentId);
+    }
+
+    /**
+     * Parses a composite metering key.
+     *
+     * @param compositeKey composite key string
+     * @return parsed key parts
+     */
+    private static String[] parseCompositeKey(String compositeKey) {
+        return compositeKey.split(ConfigConstants.DELIMITER, -1);
+    }
+
+    /**
+     * Thread-safe metering record holding evaluation count and latest timestamp.
+     */
     private static class MeteringRecord {
         private final AtomicInteger count = new AtomicInteger(1);
         private final AtomicReference<String> latestTime;
 
-         MeteringRecord(String time) {
+        MeteringRecord(String time) {
             this.latestTime = new AtomicReference<>(time);
         }
 
@@ -286,26 +263,4 @@ public class Metering {
             return latestTime.get();
         }
     }
-
-    private String buildCompositeKey(String guid, String environmentId, String collectionId,
-                                     String modifyKey, String entityId, String segmentId) {
-        return String.join(DELIMITER,
-                nullToEmpty(guid),
-                nullToEmpty(environmentId),
-                nullToEmpty(collectionId),
-                nullToEmpty(modifyKey),
-                nullToEmpty(entityId),
-                nullToEmpty(segmentId)
-        );
-    }
-
-    private String[] parseCompositeKey(String compositeKey) {
-        return compositeKey.split(DELIMITER, -1);
-    }
-
-    private String nullToEmpty(String str) {
-        return str != null ? str : "";
-    }
 }
-
-

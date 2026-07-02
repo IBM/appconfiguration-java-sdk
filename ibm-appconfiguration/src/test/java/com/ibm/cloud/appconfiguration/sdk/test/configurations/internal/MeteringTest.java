@@ -17,11 +17,8 @@
 package com.ibm.cloud.appconfiguration.sdk.test.configurations.internal;
 
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Metering;
-import org.json.JSONObject;
+import com.ibm.cloud.appconfiguration.sdk.configurations.models.Evaluation;
 import org.junit.jupiter.api.Test;
-
-import java.util.ArrayList;
-import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -34,26 +31,24 @@ public class MeteringTest {
 
         metering.sendMetering();
         Thread.sleep(2000);
-        metering.addMetering("guid1","environment_id", "collection_id1","id_1","segment_id1","feature_id1",null);
-        metering.addMetering("guid1","environment_id", "collection_id1","id_1","segment_id1","feature_id1",null);
-        metering.addMetering("guid1","environment_id", "collection_id2","id_1","segment_id1","feature_id1",null);
-        metering.addMetering("guid1","environment_id", "collection_id2","id_1","segment_id1","feature_id2",null);
+        metering.addMetering("id_1","segment_id1","feature_id1",null);
+        metering.addMetering("id_1","segment_id1","feature_id1",null);
+        metering.addMetering("id_2","segment_id1","feature_id1",null);
+        metering.addMetering("id_1","segment_id2","feature_id1",null);
+        metering.addMetering("id_1","segment_id1","feature_id2",null);
 
-        metering.addMetering("guid2","environment_id", "collection_id1","id_1","segment_id1","feature_id1",null);
-        metering.addMetering("guid3","environment_id", "collection_id1","id_1","segment_id1","feature_id1",null);
+        metering.addMetering("id_1","segment_id1","resource_id1",null);
+        metering.addMetering("id_1","segment_id1",null,"resource_id1");
 
-        assertEquals(3, metering.sendMetering().size());
+        assertEquals(6, metering.sendMetering().usages.size());
 
-        for (int i=0; i<25; i++) {
-            metering.addMetering("guid"+i,"environment_id"+i, "collection_id"+i,"id_"+i,"segment_id"+i,"feature_id"+i,
-                null);
+        for (int i=0; i<30; i++) {
+            metering.addMetering("id_"+i,"segment_id"+i,"feature_id"+i, null);
         }
-        assertEquals(25, metering.sendMetering().size());
-        List<JSONObject> jsonObjectList = new ArrayList<>();
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("usages", jsonObjectList);
-        jsonObject.put("collection_id", "");
-        jsonObject.put("environment_id", "");
-        metering.sendSplitMetering(jsonObject,0);
+        assertEquals(30, metering.sendMetering().usages.size());
+        Evaluation evaluation = new Evaluation();
+        evaluation.collectionId = "";
+        evaluation.environmentId = "";
+        metering.sendSplitMetering(evaluation);
     }
 }

@@ -24,18 +24,18 @@ public class ConfigConstants {
     private ConfigConstants() {
     }
 
+
+    public static final int USAGE_SEND_INTERVAL = 600000;
+    public static final String DELIMITER = "\u001F";
+    public static final String JSON_CONTENT = "application/json";
+    public static final String EMPTY_STRING = "";
     public static final String DEFAULT_SEGMENT_ID = "$$null$$";
     public static final String DEFAULT_ENTITY_ID = "$$null$$";
-    public static final int DEFAULT_USAGE_LIMIT = 10;
+    public static final int DEFAULT_USAGE_LIMIT = 30;
     public static final String DEFAULT_SERVICE_NAME = "app_configuration";
     public static final String EVALUATED_SEGMENT_ID = "evaluated_segment_id";
-    public static final String EVALUATION_TIME = "evaluation_time";
     public static final String COLLECTION_ID = "collection_id";
     public static final String ENVIRONMENT_ID = "environment_id";
-    public static final String USAGES = "usages";
-    public static final String COUNT = "count";
-    public static final String ENTITY_ID = "entity_id";
-    public static final String SEGMENT_ID = "segment_id";
     public static final String VALUE = "value";
     public static final String PROPERTY_ID = "property_id";
     public static final String FEATURE_ID = "feature_id";
@@ -49,4 +49,7 @@ public class ConfigConstants {
     public static final String IS_ENABLED = "is_enabled";
     public static final String CURRENT_VALUE = "current_value";
     public static final int CUSTOM_SOCKET_CLOSE_REASON_CODE = 4001;
+    public static final String MANUAL = "MANUAL";
+    public static final String PROGRESSIVE = "PROGRESSIVE";
+    public static final String DEFAULT = "$default";
 }

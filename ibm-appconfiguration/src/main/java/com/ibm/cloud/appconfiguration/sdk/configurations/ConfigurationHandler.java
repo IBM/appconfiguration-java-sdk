@@ -17,6 +17,7 @@
 package com.ibm.cloud.appconfiguration.sdk.configurations;
 
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ResultExtractConfigurations;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.RolloutUtils;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.CacheConfig;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.RuleElem;
 import com.ibm.cloud.appconfiguration.sdk.core.ServiceImpl;
@@ -52,6 +53,8 @@ import java.nio.file.Path;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
+import java.util.Objects;
 
 /**
  * Internal class to handle the configuration.
@@ -70,6 +73,7 @@ public class ConfigurationHandler {
     private HashMap<String, Feature> featureMap = new HashMap<>();
     private HashMap<String, Property> propertyMap = new HashMap<>();
     private HashMap<String, Segment> segmentMap = new HashMap<>();
+    private HashMap<String, TreeMap<Long, Integer>> rolloutConfigMap = new HashMap<>();
     private Boolean liveConfigUpdateEnabled = true;
     private String bootstrapFile = null;
     private Boolean onSocketRetry = false;
@@ -145,7 +149,7 @@ public class ConfigurationHandler {
         this.collectionId = collectionId;
         this.environmentId = environmentId;
         URLBuilder.initWithContext(collectionId, environmentId, region, guid, overrideServiceUrl, usePrivateEndpoint);
-        Metering.getInstance().setMeteringUrl(URLBuilder.getMeteringUrl(), apikey);
+        Metering.getInstance().init(URLBuilder.getMeteringUrl(), collectionId, environmentId, apikey);
         this.isInitialized = true;
 
         loadData();
@@ -315,9 +319,32 @@ public class ConfigurationHandler {
             // Load features
             if (config.getFeatures() != null) {
                 this.featureMap = new HashMap<>();
+                this.rolloutConfigMap = new HashMap<>();
+
                 for (Feature feature : config.getFeatures()) {
                     if (feature.getFeatureId() != null) {
                         this.featureMap.put(feature.getFeatureId(), feature);
+
+                        // Parse feature-level progressive rollout
+                        if (feature.getRolloutConfiguration() != null) {
+                            TreeMap<Long, Integer> rolloutMap = RolloutUtils.parseRolloutConfigurationPhases(feature.getRolloutConfiguration());
+                            if (rolloutMap != null) {
+                                this.rolloutConfigMap.put(feature.getFeatureId(), rolloutMap);
+                            }
+                        }
+
+                        // Parse segment-level progressive rollout
+                        if (feature.getSegmentRules() != null && !feature.getSegmentRules().isEmpty()) {
+                            for (SegmentRules segmentRule : feature.getSegmentRules()) {
+                                if (segmentRule.getRolloutConfiguration() != null) {
+                                    TreeMap<Long, Integer> rolloutMap = RolloutUtils.parseRolloutConfigurationPhases(segmentRule.getRolloutConfiguration());
+                                    if (rolloutMap != null) {
+                                        String key = feature.getFeatureId() + ConfigConstants.DELIMITER + segmentRule.getRuleId();
+                                        this.rolloutConfigMap.put(key, rolloutMap);
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -351,9 +378,7 @@ public class ConfigurationHandler {
      * @param segmentId  segment id
      */
     public void recordValuation(String featureId, String propertyId, String entityId, String segmentId) {
-
-        Metering.getInstance().addMetering(guid, environmentId,
-                collectionId, entityId, segmentId, featureId, propertyId);
+        Metering.getInstance().addMetering(entityId, segmentId, featureId, propertyId);
     }
 
     /**
@@ -366,7 +391,7 @@ public class ConfigurationHandler {
      */
     public Object propertyEvaluation(Property property, String entityId, JSONObject entityAttributes) {
         JSONObject resultDict = new JSONObject();
-        resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, ConfigConstants.DEFAULT_SEGMENT_ID);
+        resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, ConfigConstants.EMPTY_STRING);
         resultDict.put(ConfigConstants.VALUE, new Object());
 
         try {
@@ -395,7 +420,7 @@ public class ConfigurationHandler {
     public HashMap<String, Object> featureEvaluation(Feature feature, String entityId, JSONObject entityAttributes) {
 
         JSONObject resultDict = new JSONObject();
-        resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, ConfigConstants.DEFAULT_SEGMENT_ID);
+        resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, ConfigConstants.EMPTY_STRING);
         resultDict.put(ConfigConstants.VALUE, new Object());
         HashMap<String, Object> map = new HashMap<String, Object>();
         try {
@@ -408,10 +433,24 @@ public class ConfigurationHandler {
                     map.put(ConfigConstants.IS_ENABLED, resultDict.get(ConfigConstants.FEATURE_ENABLED));
                     return map;
                 }
+                // Check feature-level rollout
+                int rolloutPercentage;
+                if (feature.getRolloutConfiguration() != null) {
+                    TreeMap<Long, Integer> rolloutMap = this.rolloutConfigMap.get(feature.getFeatureId());
+                    if (rolloutMap != null) {
+                        entityId += feature.getRolloutConfiguration().getStartAt();
+                        rolloutPercentage = RolloutUtils.getCurrentRolloutPercentage(rolloutMap);
+                    } else {
+                        rolloutPercentage = 0;
+                    }
+                } else {
+                    rolloutPercentage = feature.getRolloutPercentage();
+                }
+
                 // Murmurhash will be calculated if rollout_percentage is not 100 or 0
-                if (feature.getRolloutPercentage() == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE
-                        || (feature.getRolloutPercentage() != ConfigConstants.LOWEST_POSSIBLE_ROLLOUT_PERCENTAGE
-                        && calculateMurmurHash(entityId, feature.getFeatureId()) < feature.getRolloutPercentage())) {
+                if (rolloutPercentage == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE
+                        || (rolloutPercentage != ConfigConstants.LOWEST_POSSIBLE_ROLLOUT_PERCENTAGE
+                        && calculateMurmurHash(entityId, feature.getFeatureId()) < rolloutPercentage)) {
                     map.put(ConfigConstants.CURRENT_VALUE, feature.getEnabledValue());
                     map.put(ConfigConstants.IS_ENABLED, true);
                     return map;
@@ -436,7 +475,7 @@ public class ConfigurationHandler {
                                      Feature feature, Property property, String entityId) {
 
         JSONObject resultDict = new JSONObject();
-        resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, ConfigConstants.DEFAULT_SEGMENT_ID);
+        resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, ConfigConstants.EMPTY_STRING);
         resultDict.put(ConfigConstants.VALUE, new Object());
         try {
             for (int i = 1; i <= rulesMap.size(); i++) {
@@ -452,11 +491,34 @@ public class ConfigurationHandler {
                             if (this.evaluateSegment(segmentKey, entityAttributes)) {
                                 resultDict.put(ConfigConstants.EVALUATED_SEGMENT_ID, segmentKey);
                                 if (feature != null) {
-                                    int rolloutPercentage = getRolloutPercentage(segmentRule.getRolloutPercentage(), feature.getRolloutPercentage());
+                                    int rolloutPercentage;
+
+                                    if (segmentRule.getRolloutConfiguration() != null
+                                        || Objects.equals(segmentRule.getRolloutType(), ConfigConstants.PROGRESSIVE)) {
+                                        TreeMap<Long, Integer> rolloutMap;
+                                        if (segmentRule.getRolloutPercentage().equals(ConfigConstants.DEFAULT)) {
+                                            // Use feature-level rollout configuration
+                                            rolloutMap = this.rolloutConfigMap.get(feature.getFeatureId());
+                                        } else {
+                                            // Use segment-level rollout configuration
+                                            String key = feature.getFeatureId() + ConfigConstants.DELIMITER + segmentRule.getRuleId();
+                                            rolloutMap = this.rolloutConfigMap.get(key);
+                                        }
+                                        if (rolloutMap != null) {
+                                            entityId += segmentRule.getRolloutConfiguration().getStartAt();
+                                            rolloutPercentage = RolloutUtils.getCurrentRolloutPercentage(rolloutMap);
+                                        } else {
+                                            rolloutPercentage = 0;
+                                        }
+                                    } else {
+                                        // Use manual rollout percentage
+                                        rolloutPercentage = getRolloutPercentage(segmentRule.getRolloutPercentage(), feature.getRolloutPercentage());
+                                    }
+
                                     if (rolloutPercentage == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE
                                             || (rolloutPercentage != ConfigConstants.LOWEST_POSSIBLE_ROLLOUT_PERCENTAGE
                                             && calculateMurmurHash(entityId, feature.getFeatureId()) < rolloutPercentage)) {
-                                        if (segmentRule.getValue().equals("$default")) {
+                                        if (segmentRule.getValue().equals(ConfigConstants.DEFAULT)) {
                                             resultDict.put(ConfigConstants.VALUE, feature.getEnabledValue());
                                         } else {
                                             resultDict.put(ConfigConstants.VALUE, segmentRule.getValue());
@@ -468,11 +530,11 @@ public class ConfigurationHandler {
                                     }
                                 } else {
                                     // property
-                                    if (segmentRule.getValue().equals("$default")) {
+                                    if (segmentRule.getValue().equals(ConfigConstants.DEFAULT)) {
                                         // inherited of value property.value
                                         resultDict.put(ConfigConstants.VALUE, property.getValue());
                                     } else {
-                                        // segment level overrided value
+                                        // segment level overridden value
                                         resultDict.put(ConfigConstants.VALUE, segmentRule.getValue());
                                     }
                                 }
@@ -486,9 +548,22 @@ public class ConfigurationHandler {
             AppConfigException.logException(this.className, "RuleEvaluation", e);
         }
         if (feature != null) {
-            if (feature.getRolloutPercentage() == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE
-                    || (feature.getRolloutPercentage() != ConfigConstants.LOWEST_POSSIBLE_ROLLOUT_PERCENTAGE
-                    && calculateMurmurHash(entityId, feature.getFeatureId()) < feature.getRolloutPercentage())) {
+            // Check feature-level rollout
+            int rolloutPercentage;
+            if (feature.getRolloutConfiguration() != null) {
+                TreeMap<Long, Integer> rolloutMap = this.rolloutConfigMap.get(feature.getFeatureId());
+                if (rolloutMap != null) {
+                    rolloutPercentage = RolloutUtils.getCurrentRolloutPercentage(rolloutMap);
+                } else {
+                    rolloutPercentage = 0;
+                }
+            } else {
+                rolloutPercentage = feature.getRolloutPercentage();
+            }
+
+            if (rolloutPercentage == ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE
+                    || (rolloutPercentage != ConfigConstants.LOWEST_POSSIBLE_ROLLOUT_PERCENTAGE
+                    && calculateMurmurHash(entityId, feature.getFeatureId()) < rolloutPercentage)) {
                 resultDict.put(ConfigConstants.VALUE, feature.getEnabledValue());
                 resultDict.put(ConfigConstants.FEATURE_ENABLED, true);
             } else {
@@ -502,7 +577,7 @@ public class ConfigurationHandler {
     }
 
     private int getRolloutPercentage(Object segmentRolloutPer, int featureRolloutPer) {
-        if (segmentRolloutPer.equals("$default")) {
+        if (segmentRolloutPer.equals(ConfigConstants.DEFAULT)) {
             return featureRolloutPer;
         } else {
             return (int) segmentRolloutPer;
