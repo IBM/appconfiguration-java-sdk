@@ -16,37 +16,25 @@
 
 package com.ibm.cloud.appconfiguration.sdk.test.core;
 
-import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
-import com.ibm.cloud.appconfiguration.sdk.configurations.internal.URLBuilder;
 import com.ibm.cloud.appconfiguration.sdk.core.ServiceImpl;
-import com.ibm.cloud.sdk.core.http.HttpHeaders;
-import org.json.JSONObject;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
-import java.util.HashMap;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 public class ServiceImplTest {
     @Test public void testService() {
         assertNotEquals(ServiceImpl.getCurrentDateTime(), String.valueOf(Instant.now()),
             "These two values are not equal");
 
-        assertEquals("0.4.0", ServiceImpl.getVersion(), "version are same in pom.xml");
+        assertEquals("0.4.1", ServiceImpl.getVersion(), "version are same in pom.xml");
         assertEquals("appconfiguration-java-sdk", ServiceImpl.getArtifactId(), "Artifact Id are same");
 
         ServiceImpl test = ServiceImpl.getInstance("apikey");
-        assertThrows(Exception.class, () -> {
-            test.getConfig("http://testConfig");
-        });
-        assertThrows(Exception.class, () -> {
-            test.postMetering("http://testMetering", new JSONObject());
-        });
+        assertThrows(Exception.class, () -> test.getConfig("http://testConfig"));
+        assertThrows(Exception.class, () -> test.post("http://testMetering", "{}"));
     }
 }

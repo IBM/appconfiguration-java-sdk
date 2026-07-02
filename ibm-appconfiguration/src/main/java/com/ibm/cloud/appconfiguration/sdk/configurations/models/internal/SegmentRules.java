@@ -16,12 +16,13 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.models.internal;
 
+import java.util.List;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
-
-import java.util.List;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.RolloutUtils;
 
 /**
  * Defines the model of a segment rule defined in App Configuration service.
@@ -41,6 +42,15 @@ public class SegmentRules {
     @JsonProperty("rollout_percentage")
     private Object rolloutPercentage;
 
+    @JsonProperty("rule_id")
+    private String ruleId;
+
+    @JsonProperty("rollout_type")
+    private String rolloutType;
+
+    @JsonProperty("rollout_configuration")
+    private RolloutUtils.RolloutConfiguration rolloutConfiguration;
+
     // Constructor for Jackson with required field validation
     @JsonCreator
     public SegmentRules(
@@ -57,6 +67,24 @@ public class SegmentRules {
     @JsonProperty("rollout_percentage")
     public void setRolloutPercentage(Object rolloutPercentage) {
         this.rolloutPercentage = rolloutPercentage;
+    }
+
+    // optional field, set it post-creation
+    @JsonProperty("rule_id")
+    public void setRuleId(String ruleId) {
+        this.ruleId = ruleId;
+    }
+
+    // optional field, set it post-creation
+    @JsonProperty("rollout_type")
+    public void setRolloutType(String rolloutType) {
+        this.rolloutType = rolloutType;
+    }
+
+    // optional field, set it post-creation
+    @JsonProperty("rollout_configuration")
+    public void setRolloutConfiguration(RolloutUtils.RolloutConfiguration rolloutConfiguration) {
+        this.rolloutConfiguration = rolloutConfiguration;
     }
 
     /**
@@ -85,5 +113,29 @@ public class SegmentRules {
      */
     public Object getRolloutPercentage() {
         return rolloutPercentage != null ? rolloutPercentage : ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE;
+    }
+
+    /**
+     * @return the rule ID
+     */
+    public String getRuleId() {
+        return ruleId;
+    }
+
+    /**
+     * @return the rollout type
+     */
+    public String getRolloutType() {
+        if (rolloutType == null) {
+            return ConfigConstants.MANUAL;
+        }
+        return rolloutType;
+    }
+
+    /**
+     * @return the rollout configuration
+     */
+    public RolloutUtils.RolloutConfiguration getRolloutConfiguration() {
+        return rolloutConfiguration;
     }
 }

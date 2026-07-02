@@ -16,19 +16,21 @@
 
 package com.ibm.cloud.appconfiguration.sdk.configurations.models;
 
+import java.util.HashMap;
+import java.util.List;
+
+import org.json.JSONObject;
+
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.ibm.cloud.appconfiguration.sdk.configurations.ConfigurationHandler;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.ConfigConstants;
+import com.ibm.cloud.appconfiguration.sdk.configurations.internal.RolloutUtils;
 import com.ibm.cloud.appconfiguration.sdk.configurations.internal.Validators;
 import com.ibm.cloud.appconfiguration.sdk.configurations.models.internal.SegmentRules;
 import com.ibm.cloud.appconfiguration.sdk.core.BaseLogger;
-import org.json.JSONObject;
-
-import java.util.HashMap;
-import java.util.List;
 
 /**
  * Feature class.
@@ -63,6 +65,12 @@ public class Feature {
     @JsonProperty("rollout_percentage")
     private Integer rolloutPercentage;
 
+    @JsonProperty("rollout_type")
+    private String rolloutType;
+
+    @JsonProperty("rollout_configuration")
+    private RolloutUtils.RolloutConfiguration rolloutConfiguration;
+
     @JsonProperty("collections")
     private List<Collection> collections;
 
@@ -96,6 +104,18 @@ public class Feature {
     @JsonProperty("rollout_percentage")
     public void setRolloutPercentage(Integer rolloutPercentage) {
         this.rolloutPercentage = rolloutPercentage;
+    }
+
+    // optional field, set it post-creation
+    @JsonProperty("rollout_type")
+    public void setRolloutType(String rolloutType) {
+        this.rolloutType = rolloutType;
+    }
+
+    // optional field, set it post-creation
+    @JsonProperty("rollout_configuration")
+    public void setRolloutConfiguration(RolloutUtils.RolloutConfiguration rolloutConfiguration) {
+        this.rolloutConfiguration = rolloutConfiguration;
     }
 
     // optional field, set it post-creation
@@ -179,6 +199,14 @@ public class Feature {
 
     public Integer getRolloutPercentage() {
         return rolloutPercentage != null ? rolloutPercentage : ConfigConstants.DEFAULT_ROLLOUT_PERCENTAGE;
+    }
+
+    public String getRolloutType() {
+        return rolloutType;
+    }
+
+    public RolloutUtils.RolloutConfiguration getRolloutConfiguration() {
+        return rolloutConfiguration;
     }
 
     public List<Collection> getCollections() {

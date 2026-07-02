@@ -29,7 +29,7 @@ public final class Validators {
      * @return {@code true} if given value is string. Else return {@code false}
      */
     public static Boolean validateString(String value) {
-        return !(value == null || value.isEmpty() || value == "");
+        return !(value == null || value.isEmpty());
     }
 
     public static Boolean isValidRequest(String collectionId, String environmentId, Boolean isInitialized) {
